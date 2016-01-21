@@ -34,5 +34,6 @@ fn main() {
 
     println!("Loading ROM: {}", args.arg_rom);
     let rom = load_rom(args.arg_rom).expect("Failed to load ROM");
-    let gameboy = libgameboy::Gameboy::new(rom);
+    let mut gameboy = libgameboy::Gameboy::new(rom);
+    gameboy.run();
 }

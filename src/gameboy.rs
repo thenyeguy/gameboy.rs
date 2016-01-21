@@ -13,4 +13,14 @@ impl Gameboy {
             cpu: Cpu::new(),
         }
     }
+
+    pub fn tick(&mut self) {
+        self.cpu.tick(&mut self.bus);
+    }
+
+    pub fn run(&mut self) {
+        loop {
+            self.tick();
+        }
+    }
 }
