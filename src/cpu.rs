@@ -1,49 +1,34 @@
 use std::default::Default;
 
-use bus::{Bus, WORK_RAM_START};
+use bus::{Bus};
+use z80::instructions::Instruction;
+use z80::instructions::Instruction::*;
+use z80::registers::{Reg8, Reg16, Registers};
 
 #[derive(Debug, Default)]
 pub struct Cpu {
-    reg_a: u8,
-    reg_f: u8,
-    reg_b: u8,
-    reg_c: u8,
-    reg_d: u8,
-    reg_h: u8,
-    reg_l: u8,
-    reg_sp: u16,
-    reg_pc: u16,
+    regs: Registers
 }
 
 impl Cpu {
     pub fn new() -> Cpu {
         Cpu {
-            // boot ROM loaded to start of memory
-            reg_pc: WORK_RAM_START,
-            ..Default::default()
+            regs: Registers::new()
         }
     }
 
     pub fn tick(&mut self, bus: &mut Bus) {
-        let opcode = bus.read_word(self.reg_pc);
-        match (opcode >> 4, opcode & 0x0F) {
-            (reg, 0x1) => { // ld rr,dd
-                let value: u16 = (bus.read_word(self.reg_pc+1) as u16) +
-                    ((bus.read_word(self.reg_pc+2) as u16) << 8);
-                self.write_register16(reg, value);
-                self.reg_pc += 3;
-            }
-            _ => {
-                panic!("unimplemented opcode: 0x{:x} 0b{:b}", opcode, opcode);
-            }
+        let mut pc = self.regs.read16(Reg16::PC);
+        let instruction = Instruction::decode(|| {
+            let word = bus.read_word(pc);
+            pc += 1;
+            word
+        });
+        println!("Got instruction: {:?}", instruction);
+        match instruction {
+            _ => panic!("Unimplemented instruction: {:?}", instruction),
         }
-        println!("Tick: {:?}", self);
-    }
-
-    fn write_register16(&mut self, reg: u8, value: u16) {
-        match reg {
-            0b11 => self.reg_sp = value,
-            _ => unreachable!()
-        }
+        self.regs.write16(Reg16::PC, pc);
+        println!("{:?}", self);
     }
 }

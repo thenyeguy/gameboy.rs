@@ -29,6 +29,14 @@ impl Bus {
             unimplemented!();
         }
     }
+
+    pub fn write_word(&mut self, addr: u16, val: u8) {
+        if WORK_RAM_START <= addr && addr < WORK_RAM_END {
+            self.ram[(addr - WORK_RAM_START) as usize] = val;
+        } else {
+            panic!("SEGFAULT: bus.write_word({}, {})", addr, val);
+        }
+    }
 }
 
 const BOOT_IMAGE: [u8; 256] =
