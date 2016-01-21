@@ -1,4 +1,5 @@
 extern crate docopt;
+extern crate libgameboy;
 extern crate rustc_serialize;
 
 use std::fs::File;
@@ -33,4 +34,5 @@ fn main() {
 
     println!("Loading ROM: {}", args.arg_rom);
     let rom = load_rom(args.arg_rom).expect("Failed to load ROM");
+    let gameboy = libgameboy::Gameboy::new(rom);
 }
