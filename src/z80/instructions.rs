@@ -54,6 +54,20 @@ pub enum Instruction {
     Load16(Reg16, Src16),
     Push(Reg16),
     Pop(Reg16),
+
+    Add(Src8),
+    AddCarry(Src8),
+    Sub(Src8),
+    SubCarry(Src8),
+    And(Src8),
+    Or(Src8),
+    Xor(Src8),
+    Compare(Src8),
+    Increment(Dest8),
+    Decrement(Dest8),
+    DecimalAdjust,
+    Complement,
+
     Unknown(u8),
 }
 
@@ -89,10 +103,41 @@ impl Instruction {
 
             (1,1,1,1,1,0,0,1) => Load16(Reg16::SP, Src16::Reg(HL)),
             (0,0,_,_,0,0,0,1) =>
-                Load16(reg16(opcode), src16_imm(read_word(), read_word())),
+                Load16(reg16(opcode, SP), src16_imm(read_word(), read_word())),
+            (1,1,_,_,0,1,0,1) => Push(reg16(opcode, AF)),
+            (1,1,_,_,0,0,0,1) => Push(reg16(opcode, AF)),
 
-            (1,1,_,_,0,1,0,1) => Push(reg16(opcode)),
-            (1,1,_,_,0,0,0,1) => Push(reg16(opcode)),
+            (1,1,0,0,0,1,1,0) => Add(Src8::Imm(read_word())),
+            (1,0,0,0,0,1,1,0) => Add(Src8::Indir(HL)),
+            (1,0,0,0,0,_,_,_) => Add(src_reg8(opcode)),
+            (1,1,0,0,1,1,1,0) => AddCarry(Src8::Imm(read_word())),
+            (1,0,0,0,1,1,1,0) => AddCarry(Src8::Indir(HL)),
+            (1,0,0,0,1,_,_,_) => AddCarry(src_reg8(opcode)),
+            (1,1,0,1,0,1,1,0) => Sub(Src8::Imm(read_word())),
+            (1,0,0,1,0,1,1,0) => Sub(Src8::Indir(HL)),
+            (1,0,0,1,0,_,_,_) => Sub(src_reg8(opcode)),
+            (1,1,0,1,1,1,1,0) => SubCarry(Src8::Imm(read_word())),
+            (1,0,0,1,1,1,1,0) => SubCarry(Src8::Indir(HL)),
+            (1,0,0,1,1,_,_,_) => SubCarry(src_reg8(opcode)),
+            (1,1,1,0,0,1,1,0) => And(Src8::Imm(read_word())),
+            (1,0,1,0,0,1,1,0) => And(Src8::Indir(HL)),
+            (1,0,1,0,0,_,_,_) => And(src_reg8(opcode)),
+            (1,1,1,1,0,1,1,0) => Or(Src8::Imm(read_word())),
+            (1,0,1,1,0,1,1,0) => Or(Src8::Indir(HL)),
+            (1,0,1,1,0,_,_,_) => Or(src_reg8(opcode)),
+            (1,1,1,0,1,1,1,0) => Xor(Src8::Imm(read_word())),
+            (1,0,1,0,1,1,1,0) => Xor(Src8::Indir(HL)),
+            (1,0,1,0,1,_,_,_) => Xor(src_reg8(opcode)),
+            (1,1,1,1,1,1,1,0) => Compare(Src8::Imm(read_word())),
+            (1,0,1,1,1,1,1,0) => Compare(Src8::Indir(HL)),
+            (1,0,1,1,1,_,_,_) => Compare(src_reg8(opcode)),
+            (0,0,1,1,0,1,0,0) => Increment(Dest8::Indir(HL)),
+            (0,0,_,_,_,1,0,0) => Increment(dest_reg8(opcode)),
+            (0,0,1,1,0,1,0,1) => Decrement(Dest8::Indir(HL)),
+            (0,0,_,_,_,1,0,1) => Decrement(dest_reg8(opcode)),
+            (0,0,1,0,0,1,1,1) => DecimalAdjust,
+            (0,0,1,0,1,1,1,1) => Complement,
+
             _ => Unknown(opcode),
         }
     }
@@ -109,8 +154,8 @@ fn bits(n: u8) -> (u8,u8,u8,u8,u8,u8,u8,u8) {
      n >> 0 & 1)
 }
 
-fn reg16(opcode: u8) -> Reg16 {
-    byte_to_reg16(opcode>>4 & 0b11)
+fn reg16(opcode: u8, high_reg: Reg16) -> Reg16 {
+    byte_to_reg16(opcode>>4 & 0b11, high_reg)
 }
 
 fn byte_to_reg8(b: u8) -> Reg8 {
@@ -126,12 +171,12 @@ fn byte_to_reg8(b: u8) -> Reg8 {
     }
 }
 
-fn byte_to_reg16(b: u8) -> Reg16 {
+fn byte_to_reg16(b: u8, high_reg: Reg16) -> Reg16 {
     match b {
         0b00 => Reg16::BC,
         0b01 => Reg16::DE,
         0b10 => Reg16::HL,
-        0b11 => Reg16::SP,
+        0b11 => high_reg,
         _ => unreachable!(),
     }
 }
