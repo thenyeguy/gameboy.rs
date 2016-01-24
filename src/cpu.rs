@@ -1,5 +1,3 @@
-use std::default::Default;
-
 use bus::{Bus};
 use z80::instructions::{Instruction, Src8, Dest8, Src16};
 use z80::registers::{Reg8, Reg16, Registers};
@@ -134,7 +132,26 @@ impl Cpu {
                 self.regs.set_half_carry_flag((pre & 0xF) < 1);
             }
             DecimalAdjust => {
-                unimplemented!();
+                let mut a = self.regs.read8(Reg8::A);
+                if self.regs.sub_flag() {
+                    if self.regs.half_carry_flag() {
+                        a -= 0x06;
+                    }
+                    if self.regs.carry_flag() {
+                        a -= 0x60;
+                    }
+                } else {
+                    if (a & 0x0F) > 0x09 || self.regs.half_carry_flag() {
+                        a += 0x06;
+                    }
+                    if a > 0x90 || self.regs.carry_flag() {
+                        a += 0x60;
+                        self.regs.set_carry_flag(true);
+                    }
+                }
+                self.regs.write8(Reg8::A, a);
+                self.regs.set_zero_flag(a == 0);
+                self.regs.set_half_carry_flag(false);
             }
             Complement => {
                 let val = !self.regs.read8(Reg8::A);

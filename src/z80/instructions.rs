@@ -1,4 +1,3 @@
-use bus::Bus;
 use z80::registers::{Reg8, Reg16};
 
 
