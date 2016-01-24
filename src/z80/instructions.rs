@@ -38,6 +38,7 @@ fn dest_mem(lower: u8, upper: u8) -> Dest8 {
 pub enum Src16 {
     Imm(u16),
     Reg(Reg16),
+    SPOffset(i8),
 }
 
 fn src16_imm(lower: u8, upper: u8) -> Src16 {
@@ -103,6 +104,8 @@ impl Instruction {
             (1,1,1,1,1,0,0,1) => Load16(Reg16::SP, Src16::Reg(HL)),
             (0,0,_,_,0,0,0,1) =>
                 Load16(reg16(opcode, SP), src16_imm(read_word(), read_word())),
+            (1,1,1,1,1,0,0,0) =>
+                Load16(Reg16::HL, Src16::SPOffset(read_word() as i8)),
             (1,1,_,_,0,1,0,1) => Push(reg16(opcode, AF)),
             (1,1,_,_,0,0,0,1) => Push(reg16(opcode, AF)),
 

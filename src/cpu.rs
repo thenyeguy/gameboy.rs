@@ -49,6 +49,10 @@ impl Cpu {
                 let val = match src {
                     Src16::Imm(val) => val,
                     Src16::Reg(reg) => self.regs.read16(reg),
+                    Src16::SPOffset(offset) => {
+                        let sp = self.regs.read16(Reg16::SP);
+                        ((sp as i16) + (offset as i16)) as u16
+                    }
                 };
                 self.regs.write16(dest, val);
             }
