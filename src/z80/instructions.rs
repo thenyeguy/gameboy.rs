@@ -2,6 +2,7 @@ use bus::Bus;
 use z80::registers::{Reg8, Reg16};
 
 
+#[derive(Copy, Clone, Debug)]
 pub enum Src8 {
     Imm(u8),
     Reg(Reg8),
@@ -18,6 +19,7 @@ fn src_mem(lower: u8, upper: u8) -> Src8 {
 }
 
 
+#[derive(Copy, Clone, Debug)]
 pub enum Dest8 {
     Reg(Reg8),
     Indir(Reg16),
@@ -47,6 +49,23 @@ impl Instruction {
 
         let opcode = read_word();
         match bits(opcode) {
+            (0,0,1,1,0,1,1,0) => Load8(Dest8::Indir(HL), Src8::Imm(read_word())),
+            (0,0,0,0,1,0,1,0) => Load8(Dest8::Reg(A), Src8::Indir(BC)),
+            (0,0,0,1,1,0,1,0) => Load8(Dest8::Reg(A), Src8::Indir(DE)),
+            (0,0,0,0,0,0,1,0) => Load8(Dest8::Indir(BC), Src8::Reg(A)),
+            (0,0,0,1,0,0,1,0) => Load8(Dest8::Indir(DE), Src8::Reg(A)),
+            (1,1,1,1,1,0,1,0) =>
+                Load8(Dest8::Reg(A), src_mem(read_word(), read_word())),
+            (1,1,1,1,0,0,0,0) => Load8(Dest8::Reg(A), src_mem(0xFF, read_word())),
+            (1,1,1,1,0,0,1,0) => Load8(Dest8::Reg(A), Src8::Mem(0xFF0C)),
+            (1,1,1,0,1,0,1,0) =>
+                Load8(dest_mem(read_word(), read_word()), Src8::Reg(A)),
+            (1,1,1,0,0,0,0,0) => Load8(dest_mem(0xFF, read_word()), Src8::Reg(A)),
+            (1,1,1,0,0,0,1,0) => Load8(Dest8::Mem(0xFF0C), Src8::Reg(A)),
+            (0,0,_,_,_,1,1,0) => Load8(dest_reg8(opcode), Src8::Imm(read_word())),
+            (0,1,_,_,_,1,1,0) => Load8(dest_reg8(opcode), Src8::Indir(HL)),
+            (0,1,1,1,0,_,_,_) => Load8(Dest8::Indir(HL), src_reg8(opcode)),
+            (0,1,_,_,_,_,_,_) => Load8(dest_reg8(opcode), src_reg8(opcode)),
             _ => Unknown(opcode),
         }
     }

@@ -2,7 +2,6 @@ use std::default::Default;
 
 use bus::{Bus};
 use z80::instructions::Instruction;
-use z80::instructions::Instruction::*;
 use z80::registers::{Reg8, Reg16, Registers};
 
 #[derive(Debug, Default)]
@@ -25,10 +24,29 @@ impl Cpu {
             word
         });
         println!("Got instruction: {:?}", instruction);
+        self.handle_instruction(bus, instruction);
+        self.regs.write16(Reg16::PC, pc);
+    }
+
+    fn handle_instruction(&mut self, bus: &mut Bus, instruction: Instruction) {
+        use z80::instructions::{Src8, Dest8};
+        use z80::instructions::Instruction::*;
         match instruction {
+            Load8(dest, src) => {
+                let val = match src {
+                    Src8::Imm(val) => val,
+                    Src8::Reg(reg) => self.regs.read8(reg),
+                    Src8::Indir(reg) => bus.read_word(self.regs.read16(reg)),
+                    Src8::Mem(addr) => bus.read_word(addr),
+                };
+                match dest {
+                    Dest8::Reg(reg) => self.regs.write8(reg, val),
+                    Dest8::Indir(reg) => bus.write_word(self.regs.read16(reg), val),
+                    Dest8::Mem(addr) => bus.write_word(addr, val),
+                }
+            }
             _ => panic!("Unimplemented instruction: {:?}", instruction),
         }
-        self.regs.write16(Reg16::PC, pc);
         println!("{:?}", self);
     }
 }
