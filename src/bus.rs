@@ -34,7 +34,7 @@ impl Bus {
         if WORK_RAM_START <= addr && addr < WORK_RAM_END {
             self.ram[(addr - WORK_RAM_START) as usize] = val;
         } else {
-            panic!("SEGFAULT: bus.write_word({}, {})", addr, val);
+            panic!("SEGFAULT: bus.write_word({} (0x{:x}), {})", addr, addr, val);
         }
     }
 

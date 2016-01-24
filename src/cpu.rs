@@ -33,6 +33,18 @@ impl Cpu {
                 let val = self.read_src8(bus, src);
                 self.write_dest8(bus, dest, val);
             }
+            Load8Inc(dest, src) => {
+                let val = self.read_src8(bus, src);
+                self.write_dest8(bus, dest, val);
+                let hl = self.regs.read16(Reg16::HL);
+                self.regs.write16(Reg16::HL, hl+1);
+            }
+            Load8Dec(dest, src) => {
+                let val = self.read_src8(bus, src);
+                self.write_dest8(bus, dest, val);
+                let hl = self.regs.read16(Reg16::HL);
+                self.regs.write16(Reg16::HL, hl-1);
+            }
             Load16(dest, src) => {
                 let val = match src {
                     Src16::Imm(val) => val,

@@ -70,19 +70,19 @@ impl Registers {
         match reg {
             Reg16::AF => {
                 self.a = (val >> 8) as u8;
-                self.f = (val & 0xF) as u8;
+                self.f = (val & 0xFF) as u8;
             }
             Reg16::BC => {
                 self.b = (val >> 8) as u8;
-                self.c = (val & 0xF) as u8;
+                self.c = (val & 0xFF) as u8;
             }
             Reg16::DE => {
                 self.d = (val >> 8) as u8;
-                self.e = (val & 0xF) as u8;
+                self.e = (val & 0xFF) as u8;
             }
             Reg16::HL => {
                 self.h = (val >> 8) as u8;
-                self.l = (val & 0xF) as u8;
+                self.l = (val & 0xFF) as u8;
             }
             Reg16::SP => self.sp = val,
             Reg16::PC => self.pc = val,
