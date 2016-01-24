@@ -36,8 +36,22 @@ fn dest_mem(lower: u8, upper: u8) -> Dest8 {
 
 
 #[derive(Copy, Clone, Debug)]
+pub enum Src16 {
+    Imm(u16),
+    Reg(Reg16),
+}
+
+fn src16_imm(lower: u8, upper: u8) -> Src16 {
+    Src16::Imm(u16_val(lower, upper))
+}
+
+
+#[derive(Copy, Clone, Debug)]
 pub enum Instruction {
     Load8(Dest8, Src8),
+    Load8Inc(Dest8, Src8),
+    Load8Dec(Dest8, Src8),
+    Load16(Reg16, Src16),
     Unknown(u8),
 }
 
@@ -62,10 +76,18 @@ impl Instruction {
                 Load8(dest_mem(read_word(), read_word()), Src8::Reg(A)),
             (1,1,1,0,0,0,0,0) => Load8(dest_mem(0xFF, read_word()), Src8::Reg(A)),
             (1,1,1,0,0,0,1,0) => Load8(Dest8::Mem(0xFF0C), Src8::Reg(A)),
+            (0,0,1,0,0,0,1,0) => Load8Inc(Dest8::Indir(HL), Src8::Reg(A)),
+            (0,0,1,0,1,0,1,0) => Load8Inc(Dest8::Reg(A), Src8::Indir(HL)),
+            (0,1,1,0,0,0,1,0) => Load8Dec(Dest8::Indir(HL), Src8::Reg(A)),
+            (0,1,1,0,1,0,1,0) => Load8Dec(Dest8::Reg(A), Src8::Indir(HL)),
             (0,0,_,_,_,1,1,0) => Load8(dest_reg8(opcode), Src8::Imm(read_word())),
             (0,1,_,_,_,1,1,0) => Load8(dest_reg8(opcode), Src8::Indir(HL)),
             (0,1,1,1,0,_,_,_) => Load8(Dest8::Indir(HL), src_reg8(opcode)),
             (0,1,_,_,_,_,_,_) => Load8(dest_reg8(opcode), src_reg8(opcode)),
+
+            (1,1,1,1,1,0,0,1) => Load16(Reg16::SP, Src16::Reg(HL)),
+            (0,0,_,_,0,0,0,1) =>
+                Load16(reg16(opcode), src16_imm(read_word(), read_word())),
             _ => Unknown(opcode),
         }
     }

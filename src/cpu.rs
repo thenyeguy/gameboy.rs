@@ -29,7 +29,7 @@ impl Cpu {
     }
 
     fn handle_instruction(&mut self, bus: &mut Bus, instruction: Instruction) {
-        use z80::instructions::{Src8, Dest8};
+        use z80::instructions::{Src8, Dest8, Src16};
         use z80::instructions::Instruction::*;
         match instruction {
             Load8(dest, src) => {
@@ -44,6 +44,13 @@ impl Cpu {
                     Dest8::Indir(reg) => bus.write_word(self.regs.read16(reg), val),
                     Dest8::Mem(addr) => bus.write_word(addr, val),
                 }
+            }
+            Load16(dest, src) => {
+                let val = match src {
+                    Src16::Imm(val) => val,
+                    Src16::Reg(reg) => self.regs.read16(reg),
+                };
+                self.regs.write16(dest, val);
             }
             _ => panic!("Unimplemented instruction: {:?}", instruction),
         }
