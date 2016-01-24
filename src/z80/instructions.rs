@@ -52,6 +52,8 @@ pub enum Instruction {
     Load8Inc(Dest8, Src8),
     Load8Dec(Dest8, Src8),
     Load16(Reg16, Src16),
+    Push(Reg16),
+    Pop(Reg16),
     Unknown(u8),
 }
 
@@ -88,6 +90,9 @@ impl Instruction {
             (1,1,1,1,1,0,0,1) => Load16(Reg16::SP, Src16::Reg(HL)),
             (0,0,_,_,0,0,0,1) =>
                 Load16(reg16(opcode), src16_imm(read_word(), read_word())),
+
+            (1,1,_,_,0,1,0,1) => Push(reg16(opcode)),
+            (1,1,_,_,0,0,0,1) => Push(reg16(opcode)),
             _ => Unknown(opcode),
         }
     }

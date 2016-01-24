@@ -52,6 +52,16 @@ impl Cpu {
                 };
                 self.regs.write16(dest, val);
             }
+            Push(reg) => {
+                let sp = self.regs.read16(Reg16::SP) - 2;
+                self.regs.write16(Reg16::SP, sp);
+                bus.write_double(sp, self.regs.read16(reg));
+            }
+            Pop(reg) => {
+                let sp = self.regs.read16(Reg16::SP);
+                self.regs.write16(reg, bus.read_double(sp));
+                self.regs.write16(Reg16::SP, sp-2);
+            }
             _ => panic!("Unimplemented instruction: {:?}", instruction),
         }
         println!("{:?}", self);

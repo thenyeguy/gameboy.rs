@@ -37,6 +37,15 @@ impl Bus {
             panic!("SEGFAULT: bus.write_word({}, {})", addr, val);
         }
     }
+
+    pub fn read_double(&self, addr: u16) -> u16 {
+        (self.read_word(addr) as u16) + ((self.read_word(addr+1) as u16) << 8)
+    }
+
+    pub fn write_double(&mut self, addr: u16, val: u16) {
+        self.write_word(addr, (val & 0xFF) as u8);
+        self.write_word(addr+1, (val>>8 & 0xFF) as u8);
+    }
 }
 
 const BOOT_IMAGE: [u8; 256] =
