@@ -88,4 +88,48 @@ impl Registers {
             Reg16::PC => self.pc = val,
         }
     }
+
+    pub fn zero_flag(&self) -> bool {
+        self.get_flag(7)
+    }
+
+    pub fn set_zero_flag(&mut self, val: bool) {
+        self.set_flag(7, val);
+    }
+
+    pub fn sub_flag(&self) -> bool {
+        self.get_flag(6)
+    }
+
+    pub fn set_sub_flag(&mut self, val: bool) {
+        self.set_flag(6, val);
+    }
+
+    pub fn half_carry_flag(&self) -> bool {
+        self.get_flag(5)
+    }
+
+    pub fn set_half_carry_flag(&mut self, val: bool) {
+        self.set_flag(5, val);
+    }
+
+    pub fn carry_flag(&self) -> bool {
+        self.get_flag(4)
+    }
+
+    pub fn set_carry_flag(&mut self, val: bool) {
+        self.set_flag(4, val);
+    }
+
+    fn get_flag(&self, digit: u8) -> bool {
+        ((self.f >> digit) & 0x1) == 1
+    }
+
+    fn set_flag(&mut self, digit: u8, val: bool) {
+        if val {
+            self.f = self.f | (0x1 << digit);
+        } else {
+            self.f = self.f & !(0x1 << digit);
+        }
+    }
 }
