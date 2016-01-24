@@ -159,6 +159,7 @@ impl Cpu {
                 self.regs.set_sub_flag(true);
                 self.regs.set_half_carry_flag(true);
             }
+            Unknown(opcode) => panic!("Got unknown opcode: 0x{:x}", opcode),
             _ => panic!("Unimplemented instruction: {:?}", instruction),
         }
         println!("{:?}", self);
