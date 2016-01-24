@@ -1,38 +1,46 @@
-const RAM_SIZE: usize = 8*1024;
+pub const VRAM_START: u16 = 0x8000;
+pub const VRAM_END: u16 = 0xA000;
 
-pub const WORK_RAM_START: u16 = 0xC000;
-pub const WORK_RAM_END: u16 = 0xE000;
+pub const WRAM_START: u16 = 0xC000;
+pub const WRAM_END: u16 = 0xE000;
 
-pub struct Bus {
+pub struct MMU {
     rom: Vec<u8>,
-    ram: Vec<u8>,
+    wram: Vec<u8>,
+    vram: Vec<u8>,
 }
 
-impl Bus {
-    pub fn new(rom: Vec<u8>) -> Bus {
+impl MMU {
+    pub fn new(rom: Vec<u8>) -> Self {
         // Map boot image into RAM for simplicity
-        let mut ram = vec![0; RAM_SIZE];
+        let mut wram = vec![0; (WRAM_END-WRAM_START) as usize];
         for (i, byte) in BOOT_IMAGE.iter().enumerate() {
-            ram[i] = *byte;
+            wram[i] = *byte;
         }
+        let mut vram = vec![0; (VRAM_END-VRAM_START) as usize];
 
-        Bus {
+        MMU {
             rom: rom,
-            ram: ram,
+            wram: wram,
+            vram: vram,
         }
     }
 
     pub fn read_word(&self, addr: u16) -> u8 {
-        if WORK_RAM_START <= addr && addr < WORK_RAM_END {
-            self.ram[(addr - WORK_RAM_START) as usize]
+        if VRAM_START <= addr && addr < VRAM_END {
+            self.vram[(addr - VRAM_START) as usize]
+        } else if WRAM_START <= addr && addr < WRAM_END {
+            self.wram[(addr - WRAM_START) as usize]
         } else {
-            unimplemented!();
+            panic!("SEGFAULT: bus.read_word({} (0x{:x}))", addr, addr);
         }
     }
 
     pub fn write_word(&mut self, addr: u16, val: u8) {
-        if WORK_RAM_START <= addr && addr < WORK_RAM_END {
-            self.ram[(addr - WORK_RAM_START) as usize] = val;
+        if VRAM_START <= addr && addr < VRAM_END {
+            self.vram[(addr - VRAM_START) as usize] = val;
+        } else if WRAM_START <= addr && addr < WRAM_END {
+            self.wram[(addr - WRAM_START) as usize] = val;
         } else {
             panic!("SEGFAULT: bus.write_word({} (0x{:x}), {})", addr, addr, val);
         }

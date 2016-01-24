@@ -1,4 +1,4 @@
-use bus::{Bus};
+use mmu::MMU;
 use z80::instructions::{Instruction, Src8, Dest8, Src16};
 use z80::registers::{Reg8, Reg16, Registers};
 
@@ -14,34 +14,34 @@ impl Cpu {
         }
     }
 
-    pub fn tick(&mut self, bus: &mut Bus) {
+    pub fn tick(&mut self, mmu: &mut MMU) {
         let mut pc = self.regs.read16(Reg16::PC);
         let instruction = Instruction::decode(|| {
-            let word = bus.read_word(pc);
+            let word = mmu.read_word(pc);
             pc += 1;
             word
         });
         println!("Got instruction: {:?}", instruction);
-        self.handle_instruction(bus, instruction);
+        self.handle_instruction(mmu, instruction);
         self.regs.write16(Reg16::PC, pc);
     }
 
-    fn handle_instruction(&mut self, bus: &mut Bus, instruction: Instruction) {
+    fn handle_instruction(&mut self, mmu: &mut MMU, instruction: Instruction) {
         use z80::instructions::Instruction::*;
         match instruction {
             Load8(dest, src) => {
-                let val = self.read_src8(bus, src);
-                self.write_dest8(bus, dest, val);
+                let val = self.read_src8(mmu, src);
+                self.write_dest8(mmu, dest, val);
             }
             Load8Inc(dest, src) => {
-                let val = self.read_src8(bus, src);
-                self.write_dest8(bus, dest, val);
+                let val = self.read_src8(mmu, src);
+                self.write_dest8(mmu, dest, val);
                 let hl = self.regs.read16(Reg16::HL);
                 self.regs.write16(Reg16::HL, hl+1);
             }
             Load8Dec(dest, src) => {
-                let val = self.read_src8(bus, src);
-                self.write_dest8(bus, dest, val);
+                let val = self.read_src8(mmu, src);
+                self.write_dest8(mmu, dest, val);
                 let hl = self.regs.read16(Reg16::HL);
                 self.regs.write16(Reg16::HL, hl-1);
             }
@@ -55,30 +55,30 @@ impl Cpu {
             Push(reg) => {
                 let sp = self.regs.read16(Reg16::SP) - 2;
                 self.regs.write16(Reg16::SP, sp);
-                bus.write_double(sp, self.regs.read16(reg));
+                mmu.write_double(sp, self.regs.read16(reg));
             }
             Pop(reg) => {
                 let sp = self.regs.read16(Reg16::SP);
-                self.regs.write16(reg, bus.read_double(sp));
+                self.regs.write16(reg, mmu.read_double(sp));
                 self.regs.write16(Reg16::SP, sp-2);
             }
             Add(src) => {
-                self.do_add(bus, src, false);
+                self.do_add(mmu, src, false);
             }
             AddCarry(src) => {
                 let carry = self.regs.carry_flag();
-                self.do_add(bus, src, carry);
+                self.do_add(mmu, src, carry);
             }
             Sub(src) => {
-                self.do_sub(bus, src, false, true);
+                self.do_sub(mmu, src, false, true);
             }
             SubCarry(src) => {
                 let carry = self.regs.carry_flag();
-                self.do_sub(bus, src, carry, true);
+                self.do_sub(mmu, src, carry, true);
             }
             And(src) => {
                 let left = self.regs.read8(Reg8::A);
-                let right = self.read_src8(bus, src);
+                let right = self.read_src8(mmu, src);
                 let val = left & right;
                 self.regs.write8(Reg8::A, val);
                 self.regs.set_zero_flag(val == 0);
@@ -88,7 +88,7 @@ impl Cpu {
             }
             Or(src) => {
                 let left = self.regs.read8(Reg8::A);
-                let right = self.read_src8(bus, src);
+                let right = self.read_src8(mmu, src);
                 let val = left | right;
                 self.regs.write8(Reg8::A, val);
                 self.regs.set_zero_flag(val == 0);
@@ -98,7 +98,7 @@ impl Cpu {
             }
             Xor(src) => {
                 let left = self.regs.read8(Reg8::A);
-                let right = self.read_src8(bus, src);
+                let right = self.read_src8(mmu, src);
                 let val = left ^ right;
                 self.regs.write8(Reg8::A, val);
                 self.regs.set_zero_flag(val == 0);
@@ -107,7 +107,7 @@ impl Cpu {
                 self.regs.set_carry_flag(false);
             }
             Compare(src) => {
-                self.do_sub(bus, src, false, true);
+                self.do_sub(mmu, src, false, true);
             }
             Increment(Dest8::Reg(reg)) => {
                 let pre = self.regs.read8(reg);
@@ -119,9 +119,9 @@ impl Cpu {
             }
             Increment(Dest8::Indir(reg)) => {
                 let addr = self.regs.read16(reg);
-                let pre = bus.read_word(addr);
+                let pre = mmu.read_word(addr);
                 let post = pre+1;
-                bus.write_word(addr, post);
+                mmu.write_word(addr, post);
                 self.regs.set_zero_flag(post == 0);
                 self.regs.set_sub_flag(false);
                 self.regs.set_half_carry_flag((pre & 0xF) + 1 > 0xF);
@@ -136,9 +136,9 @@ impl Cpu {
             }
             Decrement(Dest8::Indir(reg)) => {
                 let addr = self.regs.read16(reg);
-                let pre = bus.read_word(addr);
+                let pre = mmu.read_word(addr);
                 let post = pre-1;
-                bus.write_word(addr, post);
+                mmu.write_word(addr, post);
                 self.regs.set_zero_flag(post == 0);
                 self.regs.set_sub_flag(true);
                 self.regs.set_half_carry_flag((pre & 0xF) < 1);
@@ -177,26 +177,26 @@ impl Cpu {
         println!("{:?}", self);
     }
 
-    fn read_src8(&self, bus: &mut Bus, src: Src8) -> u8 {
+    fn read_src8(&self, mmu: &mut MMU, src: Src8) -> u8 {
         match src {
             Src8::Imm(val) => val,
             Src8::Reg(reg) => self.regs.read8(reg),
-            Src8::Indir(reg) => bus.read_word(self.regs.read16(reg)),
-            Src8::Mem(addr) => bus.read_word(addr),
+            Src8::Indir(reg) => mmu.read_word(self.regs.read16(reg)),
+            Src8::Mem(addr) => mmu.read_word(addr),
         }
     }
 
-    fn write_dest8(&mut self, bus: &mut Bus, dest: Dest8, val: u8) {
+    fn write_dest8(&mut self, mmu: &mut MMU, dest: Dest8, val: u8) {
         match dest {
             Dest8::Reg(reg) => self.regs.write8(reg, val),
-            Dest8::Indir(reg) => bus.write_word(self.regs.read16(reg), val),
-            Dest8::Mem(addr) => bus.write_word(addr, val),
+            Dest8::Indir(reg) => mmu.write_word(self.regs.read16(reg), val),
+            Dest8::Mem(addr) => mmu.write_word(addr, val),
         }
     }
 
-    fn do_add(&mut self, bus: &mut Bus, src: Src8, carry: bool) {
+    fn do_add(&mut self, mmu: &mut MMU, src: Src8, carry: bool) {
         let left = self.regs.read8(Reg8::A);
-        let right = self.read_src8(bus, src);
+        let right = self.read_src8(mmu, src);
         let carry = if carry { 1 } else { 0 };
         let val = left + right + carry;
         self.regs.write8(Reg8::A, val);
@@ -208,9 +208,9 @@ impl Cpu {
             ((left as u16) + (right as u16) + (carry as u16)) > 0xFF);
     }
 
-    fn do_sub(&mut self, bus: &mut Bus, src: Src8, carry: bool, store: bool) {
+    fn do_sub(&mut self, mmu: &mut MMU, src: Src8, carry: bool, store: bool) {
         let left = self.regs.read8(Reg8::A);
-        let right = self.read_src8(bus, src);
+        let right = self.read_src8(mmu, src);
         let carry = if carry { 1 } else { 0 };
         let val = left - right - carry;
         if store { self.regs.write8(Reg8::A, val); }

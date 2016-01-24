@@ -1,6 +1,6 @@
 use std::default::Default;
 
-use bus::WORK_RAM_START;
+use mmu::WRAM_START;
 
 
 #[derive(Copy, Clone, Debug)]
@@ -26,7 +26,7 @@ pub struct Registers {
 impl Registers {
     pub fn new() -> Registers {
         Registers {
-            pc: WORK_RAM_START,
+            pc: WRAM_START,
             ..Default::default()
         }
     }

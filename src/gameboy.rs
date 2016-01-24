@@ -1,21 +1,21 @@
-use bus::Bus;
+use mmu::MMU;
 use cpu::Cpu;
 
 pub struct Gameboy {
-    bus: Bus,
+    mmu: MMU,
     cpu: Cpu,
 }
 
 impl Gameboy {
     pub fn new(rom: Vec<u8>) -> Gameboy {
         Gameboy {
-            bus: Bus::new(rom),
+            mmu: MMU::new(rom),
             cpu: Cpu::new(),
         }
     }
 
     pub fn tick(&mut self) {
-        self.cpu.tick(&mut self.bus);
+        self.cpu.tick(&mut self.mmu);
     }
 
     pub fn run(&mut self) {
