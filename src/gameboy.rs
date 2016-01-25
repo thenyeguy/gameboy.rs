@@ -1,6 +1,6 @@
 use mmu::MMU;
 use cartridge::Cartridge;
-use cpu::Cpu;
+use z80::cpu::Cpu;
 
 pub struct Gameboy {
     mmu: MMU,

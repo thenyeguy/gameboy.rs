@@ -1,6 +1,5 @@
 mod bootrom;
 mod cartridge;
-mod cpu;
 mod gameboy;
 mod mmu;
 mod z80;
