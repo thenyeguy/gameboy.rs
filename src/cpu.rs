@@ -21,9 +21,10 @@ impl Cpu {
             pc += 1;
             word
         });
+        self.regs.write16(Reg16::PC, pc);
         println!("Got instruction: {:?}", instruction);
         self.handle_instruction(mmu, instruction);
-        self.regs.write16(Reg16::PC, pc);
+        println!("{:?}", self);
     }
 
     fn handle_instruction(&mut self, mmu: &mut MMU, instruction: Instruction) {
@@ -63,9 +64,9 @@ impl Cpu {
                     Src16::Reg(reg) => self.regs.read16(reg),
                     Src16::Offset(offset) => {
                         let sp = self.regs.read16(Reg16::SP);
-                        self.regs.set_flag(Flag::H, 
+                        self.regs.set_flag(Flag::H,
                             (sp & 0xF) + (offset as u8 as u16) > 0xF);
-                        self.regs.set_flag(Flag::C, 
+                        self.regs.set_flag(Flag::C,
                             (sp & 0xFF) + (offset as u16) > 0xFF);
                         ((sp as i16) + (offset as i16)) as u16
                     }
@@ -196,18 +197,18 @@ impl Cpu {
                 let right = self.regs.read16(reg);
                 let val = left + right;
                 self.regs.write16(reg, val);
-                self.regs.set_flag(Flag::H, 
+                self.regs.set_flag(Flag::H,
                     (left & 0xFFF) + (right & 0xFFF) > 0xFFF);
-                self.regs.set_flag(Flag::C, 
+                self.regs.set_flag(Flag::C,
                     (left as u32) + (right as u32) > 0xFFFF);
             }
             Add16(Reg16::SP, Src16::Offset(offset)) => {
                 let sp = self.regs.read16(Reg16::SP);
                 let val = ((sp as i16) + (offset as i16)) as u16;
                 self.regs.write16(Reg16::SP, val);
-                self.regs.set_flag(Flag::H, 
+                self.regs.set_flag(Flag::H,
                     (sp & 0xF) + (offset as u8 as u16) > 0xF);
-                self.regs.set_flag(Flag::C, 
+                self.regs.set_flag(Flag::C,
                     (sp & 0xFF) + (offset as u16) > 0xFF);
             }
             Increment16(reg) => {
@@ -362,13 +363,14 @@ impl Cpu {
                 }
             }
             RelativeJump(offset) => {
-                let addr = self.regs.read16(Reg16::PC) + (offset as i16 as u16);
-                self.regs.write16(Reg16::PC, addr);
+                let addr = (self.regs.read16(Reg16::PC) as i16) + (offset as i16);
+                self.regs.write16(Reg16::PC, addr as u16);
             }
             RelativeJumpConditional(flag, offset) => {
                 if self.check_flag_state(flag) {
-                    let addr = self.regs.read16(Reg16::PC) + (offset as i16 as u16);
-                    self.regs.write16(Reg16::PC, addr);
+                    let addr = (self.regs.read16(Reg16::PC) as i16) +
+                        (offset as i16);
+                    self.regs.write16(Reg16::PC, addr as u16);
                 }
             }
             Call(addr) => {
@@ -391,7 +393,6 @@ impl Cpu {
                 panic!("Got unknown opcode: 0x{:x}_{:x}", opcode, bitcode),
             _ => panic!("Unimplemented instruction: {:?}", instruction),
         }
-        println!("{:?}", self);
     }
 
     fn read_src8(&self, mmu: &mut MMU, src: Src8) -> u8 {
@@ -435,9 +436,9 @@ impl Cpu {
         self.regs.write8(Reg8::A, val);
         self.regs.set_flag(Flag::Z, val == 0);
         self.regs.set_flag(Flag::S, false);
-        self.regs.set_flag(Flag::H, 
+        self.regs.set_flag(Flag::H,
             ((left & 0xF) + (right & 0xF) + carry) > 0xF);
-        self.regs.set_flag(Flag::C, 
+        self.regs.set_flag(Flag::C,
             ((left as u16) + (right as u16) + (carry as u16)) > 0xFF);
     }
 
