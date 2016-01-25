@@ -85,6 +85,10 @@ pub enum Instruction {
     ShiftRightArithmetic(Dest8),
     Swap(Dest8),
 
+    TestBit(u8, Dest8),
+    SetBit(u8, Dest8),
+    ResetBit(u8, Dest8),
+
     Unknown(u8, u8),
 }
 
@@ -186,6 +190,23 @@ impl Instruction {
                     (0,0,1,1,1,_,_,_) => ShiftRightLogical(dest_reg8(bitcode)),
                     (0,0,1,1,0,1,1,0) => Swap(Dest8::Indir(HL)),
                     (0,0,1,1,0,_,_,_) => Swap(dest_reg8(bitcode)),
+
+                    (0,1,_,_,_,1,1,0) =>
+                        TestBit(bitcode>>3 & 0b111, Dest8::Indir(HL)),
+                    (0,1,_,_,_,_,_,_) =>
+                        TestBit(bitcode>>3 & 0b111,
+                                Dest8::Reg(byte_to_reg8(opcode & 0b111))),
+                    (1,1,_,_,_,1,1,0) =>
+                        SetBit(bitcode>>3 & 0b111, Dest8::Indir(HL)),
+                    (1,1,_,_,_,_,_,_) =>
+                        SetBit(bitcode>>3 & 0b111,
+                               Dest8::Reg(byte_to_reg8(opcode & 0b111))),
+                    (1,0,_,_,_,1,1,0) =>
+                        ResetBit(bitcode>>3 & 0b111, Dest8::Indir(HL)),
+                    (1,0,_,_,_,_,_,_) =>
+                        ResetBit(bitcode>>3 & 0b111,
+                                 Dest8::Reg(byte_to_reg8(opcode & 0b111))),
+
                     _ => Unknown(opcode, bitcode),
                 }
             }

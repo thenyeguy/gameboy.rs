@@ -322,6 +322,23 @@ impl Cpu {
                 self.regs.set_half_carry_flag(false);
                 self.regs.set_carry_flag(false);
             }
+            TestBit(bit, dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let bit = val>>bit & 0b1;
+                self.regs.set_zero_flag(bit == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(true);
+            }
+            SetBit(bit, dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let mask = 0b1 << bit;
+                self.write_dest8(mmu, dest, val | mask);
+            }
+            ResetBit(bit, dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let mask = !(0b1 << bit);
+                self.write_dest8(mmu, dest, val & mask);
+            }
             Unknown(opcode, bitcode) =>
                 panic!("Got unknown opcode: 0x{:x}_{:x}", opcode, bitcode),
             _ => panic!("Unimplemented instruction: {:?}", instruction),
