@@ -51,6 +51,10 @@ impl Cpu {
                     Src16::Reg(reg) => self.regs.read16(reg),
                     Src16::SPOffset(offset) => {
                         let sp = self.regs.read16(Reg16::SP);
+                        self.regs.set_half_carry_flag(
+                            (sp & 0xF) + (offset as u8 as u16) > 0xF);
+                        self.regs.set_carry_flag(
+                            (sp & 0xFF) + (offset as u16) > 0xFF);
                         ((sp as i16) + (offset as i16)) as u16
                     }
                 };
@@ -174,6 +178,33 @@ impl Cpu {
                 self.regs.write8(Reg8::A, val);
                 self.regs.set_sub_flag(true);
                 self.regs.set_half_carry_flag(true);
+            }
+            Add16(reg, Src16::Reg(src)) => {
+                let left = self.regs.read16(reg);
+                let right = self.regs.read16(reg);
+                let val = left + right;
+                self.regs.write16(reg, val);
+                self.regs.set_half_carry_flag(
+                    (left & 0xFFF) + (right & 0xFFF) > 0xFFF);
+                self.regs.set_carry_flag(
+                    (left as u32) + (right as u32) > 0xFFFF);
+            }
+            Add16(Reg16::SP, Src16::SPOffset(offset)) => {
+                let sp = self.regs.read16(Reg16::SP);
+                let val = ((sp as i16) + (offset as i16)) as u16;
+                self.regs.write16(Reg16::SP, val);
+                self.regs.set_half_carry_flag(
+                    (sp & 0xF) + (offset as u8 as u16) > 0xF);
+                self.regs.set_carry_flag(
+                    (sp & 0xFF) + (offset as u16) > 0xFF);
+            }
+            Increment16(reg) => {
+                let val = self.regs.read16(reg);
+                self.regs.write16(reg, val+1);
+            }
+            Decrement16(reg) => {
+                let val = self.regs.read16(reg);
+                self.regs.write16(reg, val-1);
             }
             Unknown(opcode) => panic!("Got unknown opcode: 0x{:x}", opcode),
             _ => panic!("Unimplemented instruction: {:?}", instruction),

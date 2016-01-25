@@ -68,6 +68,10 @@ pub enum Instruction {
     DecimalAdjust,
     Complement,
 
+    Add16(Reg16, Src16),
+    Increment16(Reg16),
+    Decrement16(Reg16),
+
     Unknown(u8),
 }
 
@@ -139,6 +143,12 @@ impl Instruction {
             (0,0,_,_,_,1,0,1) => Decrement(dest_reg8(opcode)),
             (0,0,1,0,0,1,1,1) => DecimalAdjust,
             (0,0,1,0,1,1,1,1) => Complement,
+
+            (1,1,1,0,1,0,0,0) =>
+                Add16(Reg16::SP, Src16::SPOffset(read_word() as i8)),
+            (0,0,_,_,1,0,0,1) => Add16(Reg16::HL, Src16::Reg(reg16(opcode, SP))),
+            (0,0,_,_,0,0,1,1) => Increment16(reg16(opcode, SP)),
+            (0,0,_,_,1,0,1,1) => Decrement16(reg16(opcode, SP)),
 
             _ => Unknown(opcode),
         }
