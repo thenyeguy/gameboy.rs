@@ -48,6 +48,14 @@ fn src16_imm(lower: u8, upper: u8) -> Src16 {
 
 #[derive(Copy, Clone, Debug)]
 pub enum Instruction {
+    ComplementCarry,
+    SetCarry,
+    Nop,
+    Halt,
+    Stop,
+    DisableInterrupts,
+    EnableInterrupts,
+
     Load8(Dest8, Src8),
     Load8Inc(Dest8, Src8),
     Load8Dec(Dest8, Src8),
@@ -100,6 +108,18 @@ impl Instruction {
 
         let opcode = read_word();
         match bits(opcode) {
+            (0,0,1,1,1,1,1,1) => ComplementCarry,
+            (0,0,1,1,0,1,1,1) => SetCarry,
+            (0,0,0,0,0,0,0,0) => Nop,
+            (0,1,1,1,0,1,1,0) => Halt,
+            (0,0,0,1,0,0,0,0) => match read_word() {
+                0 => Stop,
+                byte => Unknown(opcode, byte),
+            },
+            (1,1,1,1,0,0,1,1) => DisableInterrupts,
+            (1,1,1,1,1,0,1,1) => EnableInterrupts,
+
+
             (0,0,1,1,0,1,1,0) => Load8(Dest8::Indir(HL), Src8::Imm(read_word())),
             (0,0,0,0,1,0,1,0) => Load8(Dest8::Reg(A), Src8::Indir(BC)),
             (0,0,0,1,1,0,1,0) => Load8(Dest8::Reg(A), Src8::Indir(DE)),

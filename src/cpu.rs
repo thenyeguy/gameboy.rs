@@ -29,6 +29,18 @@ impl Cpu {
     fn handle_instruction(&mut self, mmu: &mut MMU, instruction: Instruction) {
         use z80::instructions::Instruction::*;
         match instruction {
+            ComplementCarry => {
+                let c = self.regs.carry_flag();
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(c);
+                self.regs.set_carry_flag(!c);
+            }
+            SetCarry => {
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(true);
+            }
+            Nop => {},
             Load8(dest, src) => {
                 let val = self.read_src8(mmu, src);
                 self.write_dest8(mmu, dest, val);
