@@ -72,7 +72,20 @@ pub enum Instruction {
     Increment16(Reg16),
     Decrement16(Reg16),
 
-    Unknown(u8),
+    RotateLeftA,
+    RotateLeftACarry,
+    RotateRightA,
+    RotateRightACarry,
+    RotateLeft(Dest8),
+    RotateLeftCarry(Dest8),
+    RotateRight(Dest8),
+    RotateRightCarry(Dest8),
+    ShiftLeft(Dest8),
+    ShiftRightLogical(Dest8),
+    ShiftRightArithmetic(Dest8),
+    Swap(Dest8),
+
+    Unknown(u8, u8),
 }
 
 impl Instruction {
@@ -150,7 +163,34 @@ impl Instruction {
             (0,0,_,_,0,0,1,1) => Increment16(reg16(opcode, SP)),
             (0,0,_,_,1,0,1,1) => Decrement16(reg16(opcode, SP)),
 
-            _ => Unknown(opcode),
+            (0,0,0,0,0,1,1,1) => RotateLeftA,
+            (0,0,0,1,0,1,1,1) => RotateLeftACarry,
+            (0,0,0,0,1,1,1,1) => RotateRightA,
+            (0,0,0,1,1,1,1,1) => RotateRightACarry,
+            (1,1,0,0,1,0,1,1) => {
+                let bitcode = read_word();
+                match bits(bitcode) {
+                    (0,0,0,0,0,1,1,0) => RotateLeft(Dest8::Indir(HL)),
+                    (0,0,0,0,0,_,_,_) => RotateLeft(dest_reg8(bitcode)),
+                    (0,0,0,1,0,1,1,0) => RotateLeftCarry(Dest8::Indir(HL)),
+                    (0,0,0,1,0,_,_,_) => RotateLeftCarry(dest_reg8(bitcode)),
+                    (0,0,0,0,1,1,1,0) => RotateRight(Dest8::Indir(HL)),
+                    (0,0,0,0,1,_,_,_) => RotateRight(dest_reg8(bitcode)),
+                    (0,0,0,1,1,1,1,0) => RotateRightCarry(Dest8::Indir(HL)),
+                    (0,0,0,1,1,_,_,_) => RotateRightCarry(dest_reg8(bitcode)),
+                    (0,0,1,0,0,1,1,0) => ShiftLeft(Dest8::Indir(HL)),
+                    (0,0,1,0,0,_,_,_) => ShiftLeft(dest_reg8(bitcode)),
+                    (0,0,1,0,1,1,1,0) => ShiftRightArithmetic(Dest8::Indir(HL)),
+                    (0,0,1,0,1,_,_,_) => ShiftRightArithmetic(dest_reg8(bitcode)),
+                    (0,0,1,1,1,1,1,0) => ShiftRightLogical(Dest8::Indir(HL)),
+                    (0,0,1,1,1,_,_,_) => ShiftRightLogical(dest_reg8(bitcode)),
+                    (0,0,1,1,0,1,1,0) => Swap(Dest8::Indir(HL)),
+                    (0,0,1,1,0,_,_,_) => Swap(dest_reg8(bitcode)),
+                    _ => Unknown(opcode, bitcode),
+                }
+            }
+
+            _ => Unknown(opcode, 0),
         }
     }
 }

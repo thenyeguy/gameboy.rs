@@ -206,7 +206,124 @@ impl Cpu {
                 let val = self.regs.read16(reg);
                 self.regs.write16(reg, val-1);
             }
-            Unknown(opcode) => panic!("Got unknown opcode: 0x{:x}", opcode),
+            RotateLeftA => {
+                let val = self.regs.read8(Reg8::A);
+                let top = val >> 7;
+                self.regs.write8(Reg8::A, val<<1 | top);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(top == 0b1);
+            }
+            RotateLeftACarry => {
+                let val = self.regs.read8(Reg8::A);
+                let top = val >> 7;
+                let carry = if self.regs.carry_flag() { 1 } else { 0 };
+                self.regs.write8(Reg8::A, val<<1 | carry);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(top == 0b1);
+            }
+            RotateRightA => {
+                let val = self.regs.read8(Reg8::A);
+                let bottom = val & 0b1;
+                self.regs.write8(Reg8::A, val>>1 | bottom<<7);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(bottom == 0b1);
+            }
+            RotateRightACarry => {
+                let val = self.regs.read8(Reg8::A);
+                let bottom = val & 0b1;
+                let carry = if self.regs.carry_flag() { 1 } else { 0 };
+                self.regs.write8(Reg8::A, val>>1 | carry<<7);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(bottom == 0b1);
+            }
+            RotateLeft(dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let top = val>>7;
+                let out = val<<1 | top;
+                self.write_dest8(mmu, dest, out);
+                self.regs.set_zero_flag(out == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(top == 0b1);
+            }
+            RotateLeftCarry(dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let top = val>>7;
+                let carry = if self.regs.carry_flag() { 1 } else { 0 };
+                let out = val<<1 | carry;
+                self.write_dest8(mmu, dest, out);
+                self.regs.set_zero_flag(out == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(top == 0b1);
+            }
+            RotateRight(dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let bottom = val & 0b1;
+                let out = val>>1 | bottom<<7;
+                self.write_dest8(mmu, dest, out);
+                self.regs.set_zero_flag(out == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(bottom == 0b1);
+            }
+            RotateRightCarry(dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let bottom = val & 0b1;
+                let carry = if self.regs.carry_flag() { 1 } else { 0 };
+                let out = val>>1 | carry<<7;
+                self.write_dest8(mmu, dest, out);
+                self.regs.set_zero_flag(out == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(bottom == 0b1);
+            }
+            ShiftLeft(dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let top = val>>7;
+                let out = val<<1;
+                self.write_dest8(mmu, dest, out);
+                self.regs.set_zero_flag(out == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(top == 0b1);
+            }
+            ShiftRightLogical(dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let bottom = val & 0b1;
+                let out = val>>1;
+                self.write_dest8(mmu, dest, out);
+                self.regs.set_zero_flag(out == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(bottom == 0b1);
+            }
+            ShiftRightArithmetic(dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let bottom = val & 0b1;
+                let top = val & 0x80;
+                let out = val>>1 | top;
+                self.write_dest8(mmu, dest, out);
+                self.regs.set_zero_flag(out == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(bottom == 0b1);
+            }
+            Swap(dest) => {
+                let val = self.read_dest8(mmu, dest);
+                let out = val>>4 | val<<4;
+                self.write_dest8(mmu, dest, out);
+                self.regs.set_zero_flag(out == 0);
+                self.regs.set_sub_flag(false);
+                self.regs.set_half_carry_flag(false);
+                self.regs.set_carry_flag(false);
+            }
+            Unknown(opcode, bitcode) =>
+                panic!("Got unknown opcode: 0x{:x}_{:x}", opcode, bitcode),
             _ => panic!("Unimplemented instruction: {:?}", instruction),
         }
         println!("{:?}", self);
@@ -218,6 +335,14 @@ impl Cpu {
             Src8::Reg(reg) => self.regs.read8(reg),
             Src8::Indir(reg) => mmu.read_word(self.regs.read16(reg)),
             Src8::Mem(addr) => mmu.read_word(addr),
+        }
+    }
+
+    fn read_dest8(&mut self, mmu: &mut MMU, dest: Dest8) -> u8 {
+        match dest {
+            Dest8::Reg(reg) => self.regs.read8(reg),
+            Dest8::Indir(reg) => mmu.read_word(self.regs.read16(reg)),
+            Dest8::Mem(addr) => mmu.read_word(addr),
         }
     }
 
