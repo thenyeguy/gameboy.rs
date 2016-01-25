@@ -29,7 +29,7 @@ impl MMU {
         }
     }
 
-    pub fn read_word(&self, addr: u16) -> u8 {
+    pub fn read8(&self, addr: u16) -> u8 {
         if VRAM_START <= addr && addr < VRAM_END {
             self.vram[(addr - VRAM_START) as usize]
         } else if WRAM_START <= addr && addr < WRAM_END {
@@ -39,7 +39,7 @@ impl MMU {
         }
     }
 
-    pub fn write_word(&mut self, addr: u16, val: u8) {
+    pub fn write8(&mut self, addr: u16, val: u8) {
         if VRAM_START <= addr && addr < VRAM_END {
             self.vram[(addr - VRAM_START) as usize] = val;
         } else if WRAM_START <= addr && addr < WRAM_END {
@@ -49,12 +49,12 @@ impl MMU {
         }
     }
 
-    pub fn read_double(&self, addr: u16) -> u16 {
-        (self.read_word(addr) as u16) + ((self.read_word(addr+1) as u16) << 8)
+    pub fn read16(&self, addr: u16) -> u16 {
+        (self.read8(addr) as u16) + ((self.read8(addr+1) as u16) << 8)
     }
 
-    pub fn write_double(&mut self, addr: u16, val: u16) {
-        self.write_word(addr, (val & 0xFF) as u8);
-        self.write_word(addr+1, (val>>8 & 0xFF) as u8);
+    pub fn write16(&mut self, addr: u16, val: u16) {
+        self.write8(addr, (val & 0xFF) as u8);
+        self.write8(addr+1, (val>>8 & 0xFF) as u8);
     }
 }

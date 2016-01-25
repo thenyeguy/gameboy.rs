@@ -17,7 +17,7 @@ impl Cpu {
     pub fn tick(&mut self, mmu: &mut MMU) {
         let mut pc = self.regs.read16(Reg16::PC);
         let instruction = Instruction::decode(|| {
-            let word = mmu.read_word(pc);
+            let word = mmu.read8(pc);
             pc += 1;
             word
         });
@@ -74,11 +74,11 @@ impl Cpu {
             Push(reg) => {
                 let sp = self.regs.read16(Reg16::SP) - 2;
                 self.regs.write16(Reg16::SP, sp);
-                mmu.write_double(sp, self.regs.read16(reg));
+                mmu.write16(sp, self.regs.read16(reg));
             }
             Pop(reg) => {
                 let sp = self.regs.read16(Reg16::SP);
-                self.regs.write16(reg, mmu.read_double(sp));
+                self.regs.write16(reg, mmu.read16(sp));
                 self.regs.write16(Reg16::SP, sp-2);
             }
             Add(src) => {
@@ -138,9 +138,9 @@ impl Cpu {
             }
             Increment(Dest8::Indir(reg)) => {
                 let addr = self.regs.read16(reg);
-                let pre = mmu.read_word(addr);
+                let pre = mmu.read8(addr);
                 let post = pre+1;
-                mmu.write_word(addr, post);
+                mmu.write8(addr, post);
                 self.regs.set_flag(Flag::Z, post == 0);
                 self.regs.set_flag(Flag::S, false);
                 self.regs.set_flag(Flag::H, (pre & 0xF) + 1 > 0xF);
@@ -155,9 +155,9 @@ impl Cpu {
             }
             Decrement(Dest8::Indir(reg)) => {
                 let addr = self.regs.read16(reg);
-                let pre = mmu.read_word(addr);
+                let pre = mmu.read8(addr);
                 let post = pre-1;
-                mmu.write_word(addr, post);
+                mmu.write8(addr, post);
                 self.regs.set_flag(Flag::Z, post == 0);
                 self.regs.set_flag(Flag::S, true);
                 self.regs.set_flag(Flag::H, (pre & 0xF) < 1);
@@ -397,24 +397,24 @@ impl Cpu {
         match src {
             Src8::Imm(val) => val,
             Src8::Reg(reg) => self.regs.read8(reg),
-            Src8::Indir(reg) => mmu.read_word(self.regs.read16(reg)),
-            Src8::Mem(addr) => mmu.read_word(addr),
+            Src8::Indir(reg) => mmu.read8(self.regs.read16(reg)),
+            Src8::Mem(addr) => mmu.read8(addr),
         }
     }
 
     fn read_dest8(&self, mmu: &MMU, dest: Dest8) -> u8 {
         match dest {
             Dest8::Reg(reg) => self.regs.read8(reg),
-            Dest8::Indir(reg) => mmu.read_word(self.regs.read16(reg)),
-            Dest8::Mem(addr) => mmu.read_word(addr),
+            Dest8::Indir(reg) => mmu.read8(self.regs.read16(reg)),
+            Dest8::Mem(addr) => mmu.read8(addr),
         }
     }
 
     fn write_dest8(&mut self, mmu: &mut MMU, dest: Dest8, val: u8) {
         match dest {
             Dest8::Reg(reg) => self.regs.write8(reg, val),
-            Dest8::Indir(reg) => mmu.write_word(self.regs.read16(reg), val),
-            Dest8::Mem(addr) => mmu.write_word(addr, val),
+            Dest8::Indir(reg) => mmu.write8(self.regs.read16(reg), val),
+            Dest8::Mem(addr) => mmu.write8(addr, val),
         }
     }
 
@@ -459,14 +459,14 @@ impl Cpu {
     fn do_call(&mut self, mmu: &mut MMU, addr: u16) {
         let pc = self.regs.read16(Reg16::PC);
         let sp = self.regs.read16(Reg16::SP);
-        mmu.write_double(sp, pc);
+        mmu.write16(sp, pc);
         self.regs.write16(Reg16::PC, addr);
         self.regs.write16(Reg16::SP, sp-2);
     }
 
     fn do_return(&mut self, mmu: &mut MMU) {
         let sp = self.regs.read16(Reg16::SP);
-        let pc = mmu.read_double(sp);
+        let pc = mmu.read16(sp);
         self.regs.write16(Reg16::PC, pc);
         self.regs.write16(Reg16::SP, sp+2);
     }
