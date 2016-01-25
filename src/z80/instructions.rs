@@ -1,4 +1,4 @@
-use z80::registers::{Reg8, Reg16};
+use z80::registers::{Flag, Reg8, Reg16};
 
 
 #[derive(Copy, Clone, Debug)]
@@ -43,6 +43,23 @@ pub enum Src16 {
 
 fn src16_imm(lower: u8, upper: u8) -> Src16 {
     Src16::Imm(u16_val(lower, upper))
+}
+
+
+#[derive(Copy, Clone, Debug)]
+pub struct FlagState {
+    pub flag: Flag,
+    pub state: bool,
+}
+
+fn flag_state(opcode: u8) -> FlagState {
+    match opcode>>3 & 0b11 {
+        0b00 => FlagState { flag: Flag::Z, state: false },
+        0b01 => FlagState { flag: Flag::Z, state: true },
+        0b10 => FlagState { flag: Flag::C, state: false },
+        0b11 => FlagState { flag: Flag::C, state: true },
+        _ => unreachable!()
+    }
 }
 
 
@@ -96,6 +113,17 @@ pub enum Instruction {
     TestBit(u8, Dest8),
     SetBit(u8, Dest8),
     ResetBit(u8, Dest8),
+
+    Jump(Src16),
+    JumpConditional(FlagState, Src16),
+    RelativeJump(i8),
+    RelativeJumpConditional(FlagState, i8),
+    Call(u16),
+    CallConditional(FlagState, u16),
+    Return,
+    ReturnConditional(FlagState),
+    ReturnEnableInterrupts,
+    Reset(u16),
 
     Unknown(u8, u8),
 }
@@ -215,21 +243,38 @@ impl Instruction {
                         TestBit(bitcode>>3 & 0b111, Dest8::Indir(HL)),
                     (0,1,_,_,_,_,_,_) =>
                         TestBit(bitcode>>3 & 0b111,
-                                Dest8::Reg(byte_to_reg8(opcode & 0b111))),
+                                Dest8::Reg(byte_to_reg8(bitcode & 0b111))),
                     (1,1,_,_,_,1,1,0) =>
                         SetBit(bitcode>>3 & 0b111, Dest8::Indir(HL)),
                     (1,1,_,_,_,_,_,_) =>
                         SetBit(bitcode>>3 & 0b111,
-                               Dest8::Reg(byte_to_reg8(opcode & 0b111))),
+                               Dest8::Reg(byte_to_reg8(bitcode & 0b111))),
                     (1,0,_,_,_,1,1,0) =>
                         ResetBit(bitcode>>3 & 0b111, Dest8::Indir(HL)),
                     (1,0,_,_,_,_,_,_) =>
                         ResetBit(bitcode>>3 & 0b111,
-                                 Dest8::Reg(byte_to_reg8(opcode & 0b111))),
+                                 Dest8::Reg(byte_to_reg8(bitcode & 0b111))),
 
                     _ => Unknown(opcode, bitcode),
                 }
             }
+
+            (1,1,0,0,0,0,1,1) => Jump(src16_imm(read_word(), read_word())),
+            (1,1,1,0,1,0,0,1) => Jump(Src16::Reg(HL)),
+            (1,1,0,_,_,0,1,0) =>
+                JumpConditional(flag_state(opcode),
+                                src16_imm(read_word(), read_word())),
+            (0,0,0,1,1,0,0,0) => RelativeJump(read_word() as i8),
+            (0,0,1,_,_,0,0,0) =>
+                RelativeJumpConditional(flag_state(opcode), read_word() as i8),
+            (1,1,0,0,1,1,0,1) => Call(u16_val(read_word(), read_word())),
+            (1,1,0,_,_,1,0,0) =>
+                CallConditional(flag_state(opcode),
+                                u16_val(read_word(), read_word())),
+            (1,1,0,0,1,0,0,1) => Return,
+            (1,1,0,_,_,0,0,0) => ReturnConditional(flag_state(opcode)),
+            (1,1,0,1,1,0,0,1) => ReturnEnableInterrupts,
+            (1,1,_,_,_,1,1,1) => Reset(8*(opcode>>3 & 0b111) as u16),
 
             _ => Unknown(opcode, 0),
         }

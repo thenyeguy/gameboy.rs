@@ -1,5 +1,5 @@
 use mmu::MMU;
-use z80::instructions::{Instruction, Src8, Dest8, Src16};
+use z80::instructions::{FlagState, Instruction, Src8, Dest8, Src16};
 use z80::registers::{Flag, Reg8, Reg16, Registers};
 
 #[derive(Debug, Default)]
@@ -351,6 +351,42 @@ impl Cpu {
                 let mask = !(0b1 << bit);
                 self.write_dest8(mmu, dest, val & mask);
             }
+            Jump(src) => {
+                let addr = self.read_src16(src);
+                self.regs.write16(Reg16::PC, addr);
+            }
+            JumpConditional(flag, src) => {
+                if self.check_flag_state(flag) {
+                    let addr = self.read_src16(src);
+                    self.regs.write16(Reg16::PC, addr);
+                }
+            }
+            RelativeJump(offset) => {
+                let addr = self.regs.read16(Reg16::PC) + (offset as i16 as u16);
+                self.regs.write16(Reg16::PC, addr);
+            }
+            RelativeJumpConditional(flag, offset) => {
+                if self.check_flag_state(flag) {
+                    let addr = self.regs.read16(Reg16::PC) + (offset as i16 as u16);
+                    self.regs.write16(Reg16::PC, addr);
+                }
+            }
+            Call(addr) => {
+                self.do_call(mmu, addr);
+            }
+            CallConditional(flag, addr) => {
+                if self.check_flag_state(flag) {
+                    self.do_call(mmu, addr);
+                }
+            }
+            Return => {
+                self.do_return(mmu);
+            }
+            ReturnConditional(flag) => {
+                if self.check_flag_state(flag) {
+                    self.do_return(mmu);
+                }
+            }
             Unknown(opcode, bitcode) =>
                 panic!("Got unknown opcode: 0x{:x}_{:x}", opcode, bitcode),
             _ => panic!("Unimplemented instruction: {:?}", instruction),
@@ -367,7 +403,7 @@ impl Cpu {
         }
     }
 
-    fn read_dest8(&mut self, mmu: &mut MMU, dest: Dest8) -> u8 {
+    fn read_dest8(&self, mmu: &MMU, dest: Dest8) -> u8 {
         match dest {
             Dest8::Reg(reg) => self.regs.read8(reg),
             Dest8::Indir(reg) => mmu.read_word(self.regs.read16(reg)),
@@ -380,6 +416,14 @@ impl Cpu {
             Dest8::Reg(reg) => self.regs.write8(reg, val),
             Dest8::Indir(reg) => mmu.write_word(self.regs.read16(reg), val),
             Dest8::Mem(addr) => mmu.write_word(addr, val),
+        }
+    }
+
+    fn read_src16(&self, src: Src16) -> u16 {
+        match src {
+            Src16::Imm(val) => val,
+            Src16::Reg(reg) => self.regs.read16(reg),
+            Src16::Offset(_) => unimplemented!(),
         }
     }
 
@@ -407,5 +451,24 @@ impl Cpu {
         self.regs.set_flag(Flag::S, true);
         self.regs.set_flag(Flag::H, (left & 0xF) < (right & 0xF) + carry);
         self.regs.set_flag(Flag::C, left < right + carry);
+    }
+
+    fn check_flag_state(&self, state: FlagState) -> bool {
+        self.regs.get_flag(state.flag) == state.state
+    }
+
+    fn do_call(&mut self, mmu: &mut MMU, addr: u16) {
+        let pc = self.regs.read16(Reg16::PC);
+        let sp = self.regs.read16(Reg16::SP);
+        mmu.write_double(sp, pc);
+        self.regs.write16(Reg16::PC, addr);
+        self.regs.write16(Reg16::SP, sp-2);
+    }
+
+    fn do_return(&mut self, mmu: &mut MMU) {
+        let sp = self.regs.read16(Reg16::SP);
+        let pc = mmu.read_double(sp);
+        self.regs.write16(Reg16::PC, pc);
+        self.regs.write16(Reg16::SP, sp+2);
     }
 }
