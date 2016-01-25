@@ -1,6 +1,6 @@
 use mmu::MMU;
 use z80::instructions::{Instruction, Src8, Dest8, Src16};
-use z80::registers::{Reg8, Reg16, Registers};
+use z80::registers::{Flag, Reg8, Reg16, Registers};
 
 #[derive(Debug, Default)]
 pub struct Cpu {
@@ -30,15 +30,15 @@ impl Cpu {
         use z80::instructions::Instruction::*;
         match instruction {
             ComplementCarry => {
-                let c = self.regs.carry_flag();
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(c);
-                self.regs.set_carry_flag(!c);
+                let c = self.regs.get_flag(Flag::C);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, c);
+                self.regs.set_flag(Flag::C, !c);
             }
             SetCarry => {
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(true);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, true);
             }
             Nop => {},
             Load8(dest, src) => {
@@ -61,11 +61,11 @@ impl Cpu {
                 let val = match src {
                     Src16::Imm(val) => val,
                     Src16::Reg(reg) => self.regs.read16(reg),
-                    Src16::SPOffset(offset) => {
+                    Src16::Offset(offset) => {
                         let sp = self.regs.read16(Reg16::SP);
-                        self.regs.set_half_carry_flag(
+                        self.regs.set_flag(Flag::H, 
                             (sp & 0xF) + (offset as u8 as u16) > 0xF);
-                        self.regs.set_carry_flag(
+                        self.regs.set_flag(Flag::C, 
                             (sp & 0xFF) + (offset as u16) > 0xFF);
                         ((sp as i16) + (offset as i16)) as u16
                     }
@@ -86,14 +86,14 @@ impl Cpu {
                 self.do_add(mmu, src, false);
             }
             AddCarry(src) => {
-                let carry = self.regs.carry_flag();
+                let carry = self.regs.get_flag(Flag::C);
                 self.do_add(mmu, src, carry);
             }
             Sub(src) => {
                 self.do_sub(mmu, src, false, true);
             }
             SubCarry(src) => {
-                let carry = self.regs.carry_flag();
+                let carry = self.regs.get_flag(Flag::C);
                 self.do_sub(mmu, src, carry, true);
             }
             And(src) => {
@@ -101,30 +101,30 @@ impl Cpu {
                 let right = self.read_src8(mmu, src);
                 let val = left & right;
                 self.regs.write8(Reg8::A, val);
-                self.regs.set_zero_flag(val == 0);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_sub_flag(false);
-                self.regs.set_carry_flag(true);
+                self.regs.set_flag(Flag::Z, val == 0);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::C, true);
             }
             Or(src) => {
                 let left = self.regs.read8(Reg8::A);
                 let right = self.read_src8(mmu, src);
                 let val = left | right;
                 self.regs.write8(Reg8::A, val);
-                self.regs.set_zero_flag(val == 0);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_sub_flag(false);
-                self.regs.set_carry_flag(false);
+                self.regs.set_flag(Flag::Z, val == 0);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::C, false);
             }
             Xor(src) => {
                 let left = self.regs.read8(Reg8::A);
                 let right = self.read_src8(mmu, src);
                 let val = left ^ right;
                 self.regs.write8(Reg8::A, val);
-                self.regs.set_zero_flag(val == 0);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_sub_flag(false);
-                self.regs.set_carry_flag(false);
+                self.regs.set_flag(Flag::Z, val == 0);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::C, false);
             }
             Compare(src) => {
                 self.do_sub(mmu, src, false, true);
@@ -133,81 +133,81 @@ impl Cpu {
                 let pre = self.regs.read8(reg);
                 let post = pre+1;
                 self.regs.write8(reg, post);
-                self.regs.set_zero_flag(post == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag((pre & 0xF) + 1 > 0xF);
+                self.regs.set_flag(Flag::Z, post == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, (pre & 0xF) + 1 > 0xF);
             }
             Increment(Dest8::Indir(reg)) => {
                 let addr = self.regs.read16(reg);
                 let pre = mmu.read_word(addr);
                 let post = pre+1;
                 mmu.write_word(addr, post);
-                self.regs.set_zero_flag(post == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag((pre & 0xF) + 1 > 0xF);
+                self.regs.set_flag(Flag::Z, post == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, (pre & 0xF) + 1 > 0xF);
             }
             Decrement(Dest8::Reg(reg)) => {
                 let pre = self.regs.read8(reg);
                 let post = pre-1;
                 self.regs.write8(reg, post);
-                self.regs.set_zero_flag(post == 0);
-                self.regs.set_sub_flag(true);
-                self.regs.set_half_carry_flag((pre & 0xF) + 1 > 0xF);
+                self.regs.set_flag(Flag::Z, post == 0);
+                self.regs.set_flag(Flag::S, true);
+                self.regs.set_flag(Flag::H, (pre & 0xF) + 1 > 0xF);
             }
             Decrement(Dest8::Indir(reg)) => {
                 let addr = self.regs.read16(reg);
                 let pre = mmu.read_word(addr);
                 let post = pre-1;
                 mmu.write_word(addr, post);
-                self.regs.set_zero_flag(post == 0);
-                self.regs.set_sub_flag(true);
-                self.regs.set_half_carry_flag((pre & 0xF) < 1);
+                self.regs.set_flag(Flag::Z, post == 0);
+                self.regs.set_flag(Flag::S, true);
+                self.regs.set_flag(Flag::H, (pre & 0xF) < 1);
             }
             DecimalAdjust => {
                 let mut a = self.regs.read8(Reg8::A);
-                if self.regs.sub_flag() {
-                    if self.regs.half_carry_flag() {
+                if self.regs.get_flag(Flag::S) {
+                    if self.regs.get_flag(Flag::H) {
                         a -= 0x06;
                     }
-                    if self.regs.carry_flag() {
+                    if self.regs.get_flag(Flag::C) {
                         a -= 0x60;
                     }
                 } else {
-                    if (a & 0x0F) > 0x09 || self.regs.half_carry_flag() {
+                    if (a & 0x0F) > 0x09 || self.regs.get_flag(Flag::H) {
                         a += 0x06;
                     }
-                    if a > 0x90 || self.regs.carry_flag() {
+                    if a > 0x90 || self.regs.get_flag(Flag::C) {
                         a += 0x60;
-                        self.regs.set_carry_flag(true);
+                        self.regs.set_flag(Flag::C, true);
                     }
                 }
                 self.regs.write8(Reg8::A, a);
-                self.regs.set_zero_flag(a == 0);
-                self.regs.set_half_carry_flag(false);
+                self.regs.set_flag(Flag::Z, a == 0);
+                self.regs.set_flag(Flag::H, false);
             }
             Complement => {
                 let val = !self.regs.read8(Reg8::A);
                 self.regs.write8(Reg8::A, val);
-                self.regs.set_sub_flag(true);
-                self.regs.set_half_carry_flag(true);
+                self.regs.set_flag(Flag::S, true);
+                self.regs.set_flag(Flag::H, true);
             }
             Add16(reg, Src16::Reg(src)) => {
                 let left = self.regs.read16(reg);
                 let right = self.regs.read16(reg);
                 let val = left + right;
                 self.regs.write16(reg, val);
-                self.regs.set_half_carry_flag(
+                self.regs.set_flag(Flag::H, 
                     (left & 0xFFF) + (right & 0xFFF) > 0xFFF);
-                self.regs.set_carry_flag(
+                self.regs.set_flag(Flag::C, 
                     (left as u32) + (right as u32) > 0xFFFF);
             }
-            Add16(Reg16::SP, Src16::SPOffset(offset)) => {
+            Add16(Reg16::SP, Src16::Offset(offset)) => {
                 let sp = self.regs.read16(Reg16::SP);
                 let val = ((sp as i16) + (offset as i16)) as u16;
                 self.regs.write16(Reg16::SP, val);
-                self.regs.set_half_carry_flag(
+                self.regs.set_flag(Flag::H, 
                     (sp & 0xF) + (offset as u8 as u16) > 0xF);
-                self.regs.set_carry_flag(
+                self.regs.set_flag(Flag::C, 
                     (sp & 0xFF) + (offset as u16) > 0xFF);
             }
             Increment16(reg) => {
@@ -222,97 +222,97 @@ impl Cpu {
                 let val = self.regs.read8(Reg8::A);
                 let top = val >> 7;
                 self.regs.write8(Reg8::A, val<<1 | top);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(top == 0b1);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, top == 0b1);
             }
             RotateLeftACarry => {
                 let val = self.regs.read8(Reg8::A);
                 let top = val >> 7;
-                let carry = if self.regs.carry_flag() { 1 } else { 0 };
+                let carry = if self.regs.get_flag(Flag::C) { 1 } else { 0 };
                 self.regs.write8(Reg8::A, val<<1 | carry);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(top == 0b1);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, top == 0b1);
             }
             RotateRightA => {
                 let val = self.regs.read8(Reg8::A);
                 let bottom = val & 0b1;
                 self.regs.write8(Reg8::A, val>>1 | bottom<<7);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(bottom == 0b1);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, bottom == 0b1);
             }
             RotateRightACarry => {
                 let val = self.regs.read8(Reg8::A);
                 let bottom = val & 0b1;
-                let carry = if self.regs.carry_flag() { 1 } else { 0 };
+                let carry = if self.regs.get_flag(Flag::C) { 1 } else { 0 };
                 self.regs.write8(Reg8::A, val>>1 | carry<<7);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(bottom == 0b1);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, bottom == 0b1);
             }
             RotateLeft(dest) => {
                 let val = self.read_dest8(mmu, dest);
                 let top = val>>7;
                 let out = val<<1 | top;
                 self.write_dest8(mmu, dest, out);
-                self.regs.set_zero_flag(out == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(top == 0b1);
+                self.regs.set_flag(Flag::Z, out == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, top == 0b1);
             }
             RotateLeftCarry(dest) => {
                 let val = self.read_dest8(mmu, dest);
                 let top = val>>7;
-                let carry = if self.regs.carry_flag() { 1 } else { 0 };
+                let carry = if self.regs.get_flag(Flag::C) { 1 } else { 0 };
                 let out = val<<1 | carry;
                 self.write_dest8(mmu, dest, out);
-                self.regs.set_zero_flag(out == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(top == 0b1);
+                self.regs.set_flag(Flag::Z, out == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, top == 0b1);
             }
             RotateRight(dest) => {
                 let val = self.read_dest8(mmu, dest);
                 let bottom = val & 0b1;
                 let out = val>>1 | bottom<<7;
                 self.write_dest8(mmu, dest, out);
-                self.regs.set_zero_flag(out == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(bottom == 0b1);
+                self.regs.set_flag(Flag::Z, out == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, bottom == 0b1);
             }
             RotateRightCarry(dest) => {
                 let val = self.read_dest8(mmu, dest);
                 let bottom = val & 0b1;
-                let carry = if self.regs.carry_flag() { 1 } else { 0 };
+                let carry = if self.regs.get_flag(Flag::C) { 1 } else { 0 };
                 let out = val>>1 | carry<<7;
                 self.write_dest8(mmu, dest, out);
-                self.regs.set_zero_flag(out == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(bottom == 0b1);
+                self.regs.set_flag(Flag::Z, out == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, bottom == 0b1);
             }
             ShiftLeft(dest) => {
                 let val = self.read_dest8(mmu, dest);
                 let top = val>>7;
                 let out = val<<1;
                 self.write_dest8(mmu, dest, out);
-                self.regs.set_zero_flag(out == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(top == 0b1);
+                self.regs.set_flag(Flag::Z, out == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, top == 0b1);
             }
             ShiftRightLogical(dest) => {
                 let val = self.read_dest8(mmu, dest);
                 let bottom = val & 0b1;
                 let out = val>>1;
                 self.write_dest8(mmu, dest, out);
-                self.regs.set_zero_flag(out == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(bottom == 0b1);
+                self.regs.set_flag(Flag::Z, out == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, bottom == 0b1);
             }
             ShiftRightArithmetic(dest) => {
                 let val = self.read_dest8(mmu, dest);
@@ -320,26 +320,26 @@ impl Cpu {
                 let top = val & 0x80;
                 let out = val>>1 | top;
                 self.write_dest8(mmu, dest, out);
-                self.regs.set_zero_flag(out == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(bottom == 0b1);
+                self.regs.set_flag(Flag::Z, out == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, bottom == 0b1);
             }
             Swap(dest) => {
                 let val = self.read_dest8(mmu, dest);
                 let out = val>>4 | val<<4;
                 self.write_dest8(mmu, dest, out);
-                self.regs.set_zero_flag(out == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(false);
-                self.regs.set_carry_flag(false);
+                self.regs.set_flag(Flag::Z, out == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, false);
+                self.regs.set_flag(Flag::C, false);
             }
             TestBit(bit, dest) => {
                 let val = self.read_dest8(mmu, dest);
                 let bit = val>>bit & 0b1;
-                self.regs.set_zero_flag(bit == 0);
-                self.regs.set_sub_flag(false);
-                self.regs.set_half_carry_flag(true);
+                self.regs.set_flag(Flag::Z, bit == 0);
+                self.regs.set_flag(Flag::S, false);
+                self.regs.set_flag(Flag::H, true);
             }
             SetBit(bit, dest) => {
                 let val = self.read_dest8(mmu, dest);
@@ -389,11 +389,11 @@ impl Cpu {
         let carry = if carry { 1 } else { 0 };
         let val = left + right + carry;
         self.regs.write8(Reg8::A, val);
-        self.regs.set_zero_flag(val == 0);
-        self.regs.set_sub_flag(false);
-        self.regs.set_half_carry_flag(
+        self.regs.set_flag(Flag::Z, val == 0);
+        self.regs.set_flag(Flag::S, false);
+        self.regs.set_flag(Flag::H, 
             ((left & 0xF) + (right & 0xF) + carry) > 0xF);
-        self.regs.set_carry_flag(
+        self.regs.set_flag(Flag::C, 
             ((left as u16) + (right as u16) + (carry as u16)) > 0xFF);
     }
 
@@ -403,9 +403,9 @@ impl Cpu {
         let carry = if carry { 1 } else { 0 };
         let val = left - right - carry;
         if store { self.regs.write8(Reg8::A, val); }
-        self.regs.set_zero_flag(val == 0);
-        self.regs.set_sub_flag(true);
-        self.regs.set_half_carry_flag((left & 0xF) < (right & 0xF) + carry);
-        self.regs.set_carry_flag(left < right + carry);
+        self.regs.set_flag(Flag::Z, val == 0);
+        self.regs.set_flag(Flag::S, true);
+        self.regs.set_flag(Flag::H, (left & 0xF) < (right & 0xF) + carry);
+        self.regs.set_flag(Flag::C, left < right + carry);
     }
 }
