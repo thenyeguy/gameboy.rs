@@ -1,4 +1,5 @@
 use mmu::MMU;
+use cartridge::Cartridge;
 use cpu::Cpu;
 
 pub struct Gameboy {
@@ -7,9 +8,9 @@ pub struct Gameboy {
 }
 
 impl Gameboy {
-    pub fn new(rom: Vec<u8>) -> Gameboy {
+    pub fn new(cart: Cartridge) -> Gameboy {
         Gameboy {
-            mmu: MMU::new(rom),
+            mmu: MMU::new(cart),
             cpu: Cpu::new(),
         }
     }

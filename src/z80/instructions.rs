@@ -176,7 +176,7 @@ impl Instruction {
             (1,1,1,1,1,0,0,0) =>
                 Load16(Reg16::HL, Src16::Offset(read_word() as i8)),
             (1,1,_,_,0,1,0,1) => Push(reg16(opcode, AF)),
-            (1,1,_,_,0,0,0,1) => Push(reg16(opcode, AF)),
+            (1,1,_,_,0,0,0,1) => Pop(reg16(opcode, AF)),
 
             (1,1,0,0,0,1,1,0) => Add(Src8::Imm(read_word())),
             (1,0,0,0,0,1,1,0) => Add(Src8::Indir(HL)),

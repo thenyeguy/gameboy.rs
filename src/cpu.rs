@@ -22,9 +22,7 @@ impl Cpu {
             word
         });
         self.regs.write16(Reg16::PC, pc);
-        println!("Got instruction: {:?}", instruction);
         self.handle_instruction(mmu, instruction);
-        println!("{:?}", self);
     }
 
     fn handle_instruction(&mut self, mmu: &mut MMU, instruction: Instruction) {
@@ -194,7 +192,7 @@ impl Cpu {
             }
             Add16(reg, Src16::Reg(src)) => {
                 let left = self.regs.read16(reg);
-                let right = self.regs.read16(reg);
+                let right = self.regs.read16(src);
                 let val = left + right;
                 self.regs.write16(reg, val);
                 self.regs.set_flag(Flag::H,
