@@ -25,6 +25,8 @@ fn main() {
 
     println!("Loading ROM: {}", args.arg_rom);
     let cart = Cartridge::from_file(args.arg_rom).expect("Failed to load ROM");
+    println!("Loaded ROM with title: {}", cart.title());
     let mut gameboy = Gameboy::new(cart);
+    println!("Running...\n");
     gameboy.run();
 }
