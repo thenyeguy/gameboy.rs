@@ -2,8 +2,6 @@ extern crate docopt;
 extern crate libgameboy;
 extern crate rustc_serialize;
 
-use libgameboy::{Cartridge, Gameboy};
-
 
 #[derive(Debug, RustcDecodable)]
 struct Args {
@@ -18,7 +16,10 @@ Options:
   -h --help     Show this screen.
 ";
 
+
 fn main() {
+    use libgameboy::{Cartridge, Gameboy};
+
     let args: Args = docopt::Docopt::new(USAGE)
                                     .and_then(|d| d.decode())
                                     .unwrap_or_else(|e| e.exit());

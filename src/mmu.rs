@@ -1,17 +1,6 @@
 use bootrom::DEFAULT_BOOT_ROM;
 use cartridge::Cartridge;
 
-pub const BOOTROM_START: u16 = 0x0000;
-pub const BOOTROM_END: u16 = 0x0100;
-
-pub const CARTRIDGE_ROM_START: u16 = 0x0000;
-pub const CARTRIDGE_ROM_END: u16 = 0x4000;
-
-pub const VRAM_START: u16 = 0x8000;
-pub const VRAM_END: u16 = 0xA000;
-
-pub const WRAM_START: u16 = 0xC000;
-pub const WRAM_END: u16 = 0xE000;
 
 pub struct MMU {
     cart: Cartridge,
@@ -63,3 +52,16 @@ impl MMU {
         self.write8(addr+1, (val>>8 & 0xFF) as u8);
     }
 }
+
+
+pub const BOOTROM_START: u16 = 0x0000;
+pub const BOOTROM_END: u16 = 0x0100;
+
+pub const CARTRIDGE_ROM_START: u16 = 0x0000;
+pub const CARTRIDGE_ROM_END: u16 = 0x4000;
+
+pub const VRAM_START: u16 = 0x8000;
+pub const VRAM_END: u16 = 0xA000;
+
+pub const WRAM_START: u16 = 0xC000;
+pub const WRAM_END: u16 = 0xE000;

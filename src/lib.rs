@@ -1,3 +1,5 @@
+// TODO: documentation
+
 mod bootrom;
 mod cartridge;
 mod gameboy;

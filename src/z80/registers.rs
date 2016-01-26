@@ -3,26 +3,6 @@ use std::default::Default;
 use mmu::BOOTROM_START;
 
 
-#[derive(Copy, Clone, Debug)]
-pub enum Reg8 { A, B, C, D, E, H, L }
-
-#[derive(Copy, Clone, Debug)]
-pub enum Reg16 { AF, BC, DE, HL, SP, PC }
-
-#[derive(Copy, Clone, Debug)]
-pub enum Flag { Z, S, H, C }
-
-impl Flag {
-    fn bit(&self) -> u8 {
-        match *self {
-            Flag::Z => 7,
-            Flag::S => 6,
-            Flag::H => 5,
-            Flag::C => 4,
-        }
-    }
-}
-
 #[derive(Debug, Default)]
 pub struct Registers {
     a: u8,
@@ -112,6 +92,29 @@ impl Registers {
             self.f = self.f | (0x1 << flag.bit());
         } else {
             self.f = self.f & !(0x1 << flag.bit());
+        }
+    }
+}
+
+
+#[derive(Copy, Clone, Debug)]
+pub enum Reg8 { A, B, C, D, E, H, L }
+
+
+#[derive(Copy, Clone, Debug)]
+pub enum Reg16 { AF, BC, DE, HL, SP, PC }
+
+
+#[derive(Copy, Clone, Debug)]
+pub enum Flag { Z, S, H, C }
+
+impl Flag {
+    fn bit(&self) -> u8 {
+        match *self {
+            Flag::Z => 7,
+            Flag::S => 6,
+            Flag::H => 5,
+            Flag::C => 4,
         }
     }
 }
