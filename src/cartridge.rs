@@ -3,7 +3,7 @@ use std::io::{self, Read};
 use std::path::Path;
 
 pub struct Cartridge {
-    pub data: Vec<u8>
+    data: Vec<u8>
 }
 
 impl Cartridge {
@@ -12,5 +12,9 @@ impl Cartridge {
         let mut buffer = Vec::new();
         try!(file.read_to_end(&mut buffer));
         Ok(Cartridge { data: buffer })
+    }
+
+    pub fn read8(&self, addr: u16) -> u8 {
+        self.data[addr as usize]
     }
 }

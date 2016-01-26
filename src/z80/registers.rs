@@ -1,6 +1,6 @@
 use std::default::Default;
 
-use mmu::WRAM_START;
+use mmu::BOOTROM_START;
 
 
 #[derive(Copy, Clone, Debug)]
@@ -40,7 +40,7 @@ pub struct Registers {
 impl Registers {
     pub fn new() -> Registers {
         Registers {
-            pc: WRAM_START,
+            pc: BOOTROM_START,
             ..Default::default()
         }
     }

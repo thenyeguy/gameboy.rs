@@ -1,6 +1,12 @@
 use bootrom::DEFAULT_BOOT_ROM;
 use cartridge::Cartridge;
 
+pub const BOOTROM_START: u16 = 0x0000;
+pub const BOOTROM_END: u16 = 0x0100;
+
+pub const CARTRIDGE_ROM_START: u16 = 0x0000;
+pub const CARTRIDGE_ROM_END: u16 = 0x4000;
+
 pub const VRAM_START: u16 = 0x8000;
 pub const VRAM_END: u16 = 0xA000;
 
@@ -9,28 +15,27 @@ pub const WRAM_END: u16 = 0xE000;
 
 pub struct MMU {
     cart: Cartridge,
+    bootrom: Vec<u8>,
     wram: Vec<u8>,
     vram: Vec<u8>,
 }
 
 impl MMU {
     pub fn new(cart: Cartridge) -> Self {
-        // Map boot image into RAM for simplicity
-        let mut wram = vec![0; (WRAM_END-WRAM_START) as usize];
-        for (i, byte) in DEFAULT_BOOT_ROM.iter().enumerate() {
-            wram[i] = *byte;
-        }
-        let vram = vec![0; (VRAM_END-VRAM_START) as usize];
-
         MMU {
             cart: cart,
-            wram: wram,
-            vram: vram,
+            bootrom: Vec::from(&DEFAULT_BOOT_ROM[..]),
+            wram: vec![0; (WRAM_END-WRAM_START) as usize],
+            vram: vec![0; (VRAM_END-VRAM_START) as usize],
         }
     }
 
     pub fn read8(&self, addr: u16) -> u8 {
-        if VRAM_START <= addr && addr < VRAM_END {
+        if BOOTROM_START <= addr && addr < BOOTROM_END { // TODO check flag
+            self.bootrom[(addr - BOOTROM_START) as usize]
+        } else if CARTRIDGE_ROM_START <= addr && addr < CARTRIDGE_ROM_END {
+            self.cart.read8(addr - CARTRIDGE_ROM_START)
+        } else if VRAM_START <= addr && addr < VRAM_END {
             self.vram[(addr - VRAM_START) as usize]
         } else if WRAM_START <= addr && addr < WRAM_END {
             self.wram[(addr - WRAM_START) as usize]
