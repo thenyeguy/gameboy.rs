@@ -2,6 +2,14 @@
 
 A Game Boy emulator in Rust. Just for fun.
 
+## References
+
+* [Pan Docs](http://bgb.bircd.org/pandocs.htm), a very thorough fan-made 
+  specification.
+* [Bootstrap ROM](http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM)
+* [Z80 instruction table](http://clrhome.org/table/) (mostly accurate for
+  gameboy).
+
 ## License
 
 Licensed under either of
