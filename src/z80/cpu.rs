@@ -56,6 +56,24 @@ impl Cpu {
                 let hl = self.regs.read16(Reg16::HL);
                 self.regs.write16(Reg16::HL, hl-1);
             }
+            ReadIo(src) => {
+                let addr = match src {
+                    Src8::Mem(offset) => 0xFF00 + (offset),
+                    Src8::Reg(reg) => 0xFF00 + (self.regs.read8(reg) as u16),
+                    _ => unreachable!(),
+                };
+                let val = mmu.read8(addr);
+                self.regs.write8(Reg8::A, val);
+            }
+            WriteIo(dest) => {
+                let val = self.regs.read8(Reg8::A);
+                let addr = match dest {
+                    Dest8::Mem(offset) => 0xFF00 + (offset),
+                    Dest8::Reg(reg) => 0xFF00 + (self.regs.read8(reg) as u16),
+                    _ => unreachable!(),
+                };
+                mmu.write8(addr, val);
+            }
             Load16(dest, src) => {
                 let val = match src {
                     Src16::Imm(val) => val,

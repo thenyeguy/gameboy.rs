@@ -77,8 +77,11 @@ pub enum Instruction {
     Load8Inc(Dest8, Src8),
     Load8Dec(Dest8, Src8),
     Load16(Reg16, Src16),
+    ReadIo(Src8),
+    WriteIo(Dest8),
     Push(Reg16),
     Pop(Reg16),
+
 
     Add(Src8),
     AddCarry(Src8),
@@ -155,12 +158,12 @@ impl Instruction {
             (0,0,0,1,0,0,1,0) => Load8(Dest8::Indir(DE), Src8::Reg(A)),
             (1,1,1,1,1,0,1,0) =>
                 Load8(Dest8::Reg(A), src_mem(read_word(), read_word())),
-            (1,1,1,1,0,0,0,0) => Load8(Dest8::Reg(A), src_mem(0xFF, read_word())),
-            (1,1,1,1,0,0,1,0) => Load8(Dest8::Reg(A), Src8::Mem(0xFF0C)),
+            (1,1,1,1,0,0,0,0) => ReadIo(Src8::Mem(read_word() as u16)),
+            (1,1,1,1,0,0,1,0) => ReadIo(Src8::Reg(C)),
             (1,1,1,0,1,0,1,0) =>
                 Load8(dest_mem(read_word(), read_word()), Src8::Reg(A)),
-            (1,1,1,0,0,0,0,0) => Load8(dest_mem(0xFF, read_word()), Src8::Reg(A)),
-            (1,1,1,0,0,0,1,0) => Load8(Dest8::Mem(0xFF0C), Src8::Reg(A)),
+            (1,1,1,0,0,0,0,0) => WriteIo(Dest8::Mem(read_word() as u16)),
+            (1,1,1,0,0,0,1,0) => WriteIo(Dest8::Reg(C)),
             (0,0,1,0,0,0,1,0) => Load8Inc(Dest8::Indir(HL), Src8::Reg(A)),
             (0,0,1,0,1,0,1,0) => Load8Inc(Dest8::Reg(A), Src8::Indir(HL)),
             (0,0,1,1,0,0,1,0) => Load8Dec(Dest8::Indir(HL), Src8::Reg(A)),
