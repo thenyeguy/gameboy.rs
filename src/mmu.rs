@@ -1,5 +1,6 @@
 use bootrom::DEFAULT_BOOT_ROM;
 use cartridge::Cartridge;
+use io::IoPorts;
 
 
 pub struct MMU {
@@ -7,6 +8,7 @@ pub struct MMU {
     bootrom: Vec<u8>,
     wram: Vec<u8>,
     vram: Vec<u8>,
+    io_ports: IoPorts,
 }
 
 impl MMU {
@@ -16,6 +18,7 @@ impl MMU {
             bootrom: Vec::from(&DEFAULT_BOOT_ROM[..]),
             wram: vec![0; (WRAM_END-WRAM_START) as usize],
             vram: vec![0; (VRAM_END-VRAM_START) as usize],
+            io_ports: IoPorts::new(),
         }
     }
 
@@ -23,11 +26,13 @@ impl MMU {
         if BOOTROM_START <= addr && addr < BOOTROM_END { // TODO check flag
             self.bootrom[(addr - BOOTROM_START) as usize]
         } else if CARTRIDGE_ROM_START <= addr && addr < CARTRIDGE_ROM_END {
-            self.cart.read8(addr - CARTRIDGE_ROM_START)
+            self.cart.read8(addr)
         } else if VRAM_START <= addr && addr < VRAM_END {
             self.vram[(addr - VRAM_START) as usize]
         } else if WRAM_START <= addr && addr < WRAM_END {
             self.wram[(addr - WRAM_START) as usize]
+        } else if IO_PORT_START <= addr && addr < IO_PORT_END {
+            self.io_ports.read(addr)
         } else {
             panic!("SEGFAULT: bus.read_word({} (0x{:x}))", addr, addr);
         }
@@ -38,6 +43,8 @@ impl MMU {
             self.vram[(addr - VRAM_START) as usize] = val;
         } else if WRAM_START <= addr && addr < WRAM_END {
             self.wram[(addr - WRAM_START) as usize] = val;
+        } else if IO_PORT_START <= addr && addr < IO_PORT_END {
+            self.io_ports.write(addr, val);
         } else {
             panic!("SEGFAULT: bus.write_word({} (0x{:x}), {})", addr, addr, val);
         }
@@ -65,3 +72,6 @@ pub const VRAM_END: u16 = 0xA000;
 
 pub const WRAM_START: u16 = 0xC000;
 pub const WRAM_END: u16 = 0xE000;
+
+pub const IO_PORT_START: u16 = 0xFF00;
+pub const IO_PORT_END: u16 = 0xFF80;
