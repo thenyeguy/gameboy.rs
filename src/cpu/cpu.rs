@@ -1,6 +1,6 @@
 use mmu::MMU;
-use z80::instructions::{FlagState, Instruction, Src8, Dest8, Src16};
-use z80::registers::{Flag, Reg8, Reg16, Registers};
+use cpu::instructions::{FlagState, Instruction, Src8, Dest8, Src16};
+use cpu::registers::{Flag, Reg8, Reg16, Registers};
 
 #[derive(Debug, Default)]
 pub struct Cpu {
@@ -26,7 +26,7 @@ impl Cpu {
     }
 
     fn handle_instruction(&mut self, mmu: &mut MMU, instruction: Instruction) {
-        use z80::instructions::Instruction::*;
+        use cpu::instructions::Instruction::*;
         match instruction {
             ComplementCarry => {
                 let c = self.regs.get_flag(Flag::C);

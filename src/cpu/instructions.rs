@@ -1,4 +1,4 @@
-use z80::registers::{Flag, Reg8, Reg16};
+use cpu::registers::{Flag, Reg8, Reg16};
 
 
 #[derive(Copy, Clone, Debug)]
@@ -134,8 +134,8 @@ pub enum Instruction {
 impl Instruction {
     pub fn decode<F>(mut read_word: F) -> Self where F: FnMut() -> u8 {
         use self::Instruction::*;
-        use z80::registers::Reg8::*;
-        use z80::registers::Reg16::*;
+        use cpu::registers::Reg8::*;
+        use cpu::registers::Reg16::*;
 
         let opcode = read_word();
         match bits(opcode) {
