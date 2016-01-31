@@ -1,7 +1,7 @@
 use utils::{BitOps, WordOps};
 
 // TODO: update the parsing into useful values, not just bytes
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 pub struct ToneChannel {
     wave_duty: u8,
     sound_length: u8,
@@ -53,7 +53,6 @@ impl ToneChannel {
             }
             _ => panic!("Invalid addr for ToneChannel::write: {:#X}", reladdr)
         }
-
     }
 }
 

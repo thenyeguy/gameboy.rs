@@ -1,10 +1,12 @@
 use sound::tone_channel::ToneChannel;
+use sound::wav_channel::WavChannel;
 
 #[derive(Debug, Default)]
 pub struct SoundRegisters {
     sound_enable: SoundEnable,
     sweep_channel: ToneChannel,
     tone_channel: ToneChannel,
+    wav_channel: WavChannel,
 }
 
 impl SoundRegisters {
@@ -19,15 +21,9 @@ impl SoundRegisters {
     pub fn read(&self, port: u8) -> u8 {
         match port {
             0x26 => self.sound_enable.read(),
-            0x10 => self.sweep_channel.read(0),
-            0x11 => self.sweep_channel.read(1),
-            0x12 => self.sweep_channel.read(2),
-            0x13 => self.sweep_channel.read(3),
-            0x14 => self.sweep_channel.read(4),
-            0x16 => self.tone_channel.read(1),
-            0x17 => self.tone_channel.read(2),
-            0x18 => self.tone_channel.read(3),
-            0x19 => self.tone_channel.read(4),
+            0x10...0x14 => self.sweep_channel.read(port - 0x10),
+            0x16...0x19 => self.tone_channel.read(port - 0x16 + 1),
+            0x1A...0x1E => self.wav_channel.read(port - 0x1A),
             _ => panic!("Invalid port for SoundRegisters::read: {:#X}", port)
         }
     }
@@ -35,15 +31,9 @@ impl SoundRegisters {
     pub fn write(&mut self, port: u8, val: u8) {
         match port {
             0x26 => self.sound_enable.write(val),
-            0x10 => self.sweep_channel.write(0, val),
-            0x11 => self.sweep_channel.write(1, val),
-            0x12 => self.sweep_channel.write(2, val),
-            0x13 => self.sweep_channel.write(3, val),
-            0x14 => self.sweep_channel.write(4, val),
-            0x16 => self.tone_channel.write(1, val),
-            0x17 => self.tone_channel.write(2, val),
-            0x18 => self.tone_channel.write(3, val),
-            0x19 => self.tone_channel.write(4, val),
+            0x10...0x14 => self.sweep_channel.write(port - 0x10, val),
+            0x16...0x19 => self.tone_channel.write(port - 0x16 + 1, val),
+            0x1A...0x1E => self.wav_channel.write(port - 0x1A, val),
             _ => panic!("Invalid port for SoundRegisters::write: {:#X}", port)
         }
     }
