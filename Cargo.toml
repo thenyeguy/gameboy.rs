@@ -1,12 +1,12 @@
 [package]
-name = "gameboy"
-version = "0.0.1"
 authors = ["Michael Nye <thenyeguy@gmail.com>"]
 license = "MIT/Apache-2.0"
-
-[lib]
-name = "libgameboy"
+name = "gameboy"
+version = "0.0.1"
 
 [dependencies]
 docopt = "0.6"
 rustc-serialize = "0.3"
+
+[lib]
+name = "libgameboy"

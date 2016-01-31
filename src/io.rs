@@ -1,4 +1,4 @@
-use sound::registers::SoundRegisters;
+use sound::SoundRegisters;
 
 
 #[derive(Debug, Default)]
@@ -8,20 +8,23 @@ pub struct IoPorts {
 
 impl IoPorts {
     pub fn new() -> Self {
-        IoPorts { ..Default::default() }
-    }
-
-    pub fn read(&self, addr: u16) -> u8 {
-        match addr {
-            0xFF10...0xFF3F => self.sound.read(addr),
-            _ => panic!("Invalid address for IoPort::read: {:#X}", addr),
+        IoPorts {
+            sound: SoundRegisters::new(),
+            ..Default::default()
         }
     }
 
-    pub fn write(&mut self, addr: u16, val: u8) {
-        match addr {
-            0xFF10...0xFF3F => self.sound.write(addr, val),
-            _ => panic!("Invalid address for IoPort::write: {:#X}", addr),
+    pub fn read(&self, port: u8) -> u8 {
+        match port {
+            0x10...0x3F => self.sound.read(port),
+            _ => panic!("Invalid port for IoPort::read: {:#X}", port),
+        }
+    }
+
+    pub fn write(&mut self, port: u8, val: u8) {
+        match port {
+            0x10...0x3F => self.sound.write(port, val),
+            _ => panic!("Invalid portess for IoPort::write: {:#X}", port),
         }
     }
 

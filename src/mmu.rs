@@ -1,6 +1,7 @@
 use bootrom::DEFAULT_BOOT_ROM;
 use cartridge::Cartridge;
 use io::IoPorts;
+use utils::WordOps;
 
 
 pub struct MMU {
@@ -32,7 +33,7 @@ impl MMU {
         } else if WRAM_START <= addr && addr < WRAM_END {
             self.wram[(addr - WRAM_START) as usize]
         } else if IO_PORT_START <= addr && addr < IO_PORT_END {
-            self.io_ports.read(addr)
+            self.io_ports.read(addr.get_lower())
         } else {
             panic!("SEGFAULT: bus.read_word({} (0x{:x}))", addr, addr);
         }
@@ -44,7 +45,7 @@ impl MMU {
         } else if WRAM_START <= addr && addr < WRAM_END {
             self.wram[(addr - WRAM_START) as usize] = val;
         } else if IO_PORT_START <= addr && addr < IO_PORT_END {
-            self.io_ports.write(addr, val);
+            self.io_ports.write(addr.get_lower(), val)
         } else {
             panic!("SEGFAULT: bus.write_word({} (0x{:x}), {})", addr, addr, val);
         }
