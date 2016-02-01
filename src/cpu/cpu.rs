@@ -22,6 +22,7 @@ impl Cpu {
             word
         });
         self.regs.write16(Reg16::PC, pc);
+        println!("{:?}", instruction);
         self.handle_instruction(mmu, instruction);
     }
 

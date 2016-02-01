@@ -24,7 +24,7 @@ impl IoPorts {
     pub fn write(&mut self, port: u8, val: u8) {
         match port {
             0x10...0x3F => self.sound.write(port, val),
-            _ => panic!("Invalid portess for IoPort::write: {:#X}", port),
+            _ => panic!("Invalid port for IoPort::write: {:#X}", port),
         }
     }
 
