@@ -5,9 +5,9 @@ pub struct WavChannel {
     enabled: bool,
     sound_length: u8,
     level: OutputLevel,
+    frequency: u16,
     restart_sound: bool,
     use_sound_length: bool,
-    frequency: u16,
 }
 
 impl WavChannel {

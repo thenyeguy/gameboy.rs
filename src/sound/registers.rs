@@ -1,3 +1,4 @@
+use sound::noise_channel::NoiseChannel;
 use sound::tone_channel::ToneChannel;
 use sound::wav_channel::WavChannel;
 
@@ -7,6 +8,7 @@ pub struct SoundRegisters {
     sweep_channel: ToneChannel,
     tone_channel: ToneChannel,
     wav_channel: WavChannel,
+    noise_channel: NoiseChannel,
 }
 
 impl SoundRegisters {
@@ -24,6 +26,7 @@ impl SoundRegisters {
             0x10...0x14 => self.sweep_channel.read(port - 0x10),
             0x16...0x19 => self.tone_channel.read(port - 0x16 + 1),
             0x1A...0x1E => self.wav_channel.read(port - 0x1A),
+            0x20...0x23 => self.noise_channel.read(port - 0x20 + 1),
             _ => panic!("Invalid port for SoundRegisters::read: {:#X}", port)
         }
     }
@@ -34,6 +37,7 @@ impl SoundRegisters {
             0x10...0x14 => self.sweep_channel.write(port - 0x10, val),
             0x16...0x19 => self.tone_channel.write(port - 0x16 + 1, val),
             0x1A...0x1E => self.wav_channel.write(port - 0x1A, val),
+            0x20...0x23 => self.noise_channel.write(port - 0x20 + 1, val),
             _ => panic!("Invalid port for SoundRegisters::write: {:#X}", port)
         }
     }
